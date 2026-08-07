@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>15 Minutes Later · Focus Roulette</title>
+    <meta
+      name="description"
+      content="Рулетка выбирает случайный концепт — у тебя 15 минут, чтобы в нём разобраться. Тренажёр памяти и концентрации. / A roulette picks a random concept — you get 15 minutes to explore it."
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%A0%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=2026-08-07" />
+  </head>
+  <body>
+    <div class="ambient ambient-left"></div>
+    <div class="ambient ambient-right"></div>
+
+    <header class="top-bar">
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button type="button" class="lang-button" data-lang="ru">RU</button>
+        <button type="button" class="lang-button" data-lang="en">EN</button>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <section class="hero">
+        <p class="persistent-tag" id="hero-tag">#15минутспустя</p>
+        <h1 id="hero-title">
+          Тренируй память, концентрацию<br />
+          и нейронные связи.
+        </h1>
+        <p class="hero-subtitle" id="hero-subtitle">
+          Рулетка выбирает концепт — у тебя 15 минут, чтобы в нём разобраться.
+        </p>
+      </section>
+
+      <section class="roulette-card">
+        <div class="roulette-frame">
+          <div class="focus-band"></div>
+          <div class="roulette-window" id="roulette-window"></div>
+        </div>
+
+        <div class="result-panel">
+          <span class="result-label" id="result-label">Итоговый выбор</span>
+          <strong id="result-text">Ожидание запуска</strong>
+        </div>
+
+        <button id="spin-button" class="spin-button" type="button">
+          Запустить поиск
+        </button>
+
+        <div class="progress-row">
+          <span class="progress-text" id="progress-text">Изучено 0 из 58</span>
+          <button type="button" class="ghost-button" id="reset-progress">
+            Сбросить прогресс
+          </button>
+        </div>
+      </section>
+
+      <section
+        class="session-panel"
+        id="session-panel"
+        aria-live="polite"
+        aria-hidden="true"
+        hidden
+      >
+        <button
+          class="back-button"
+          id="back-button"
+          type="button"
+          aria-label="Назад"
+        >
+          ← Назад
+        </button>
+        <p class="persistent-tag" id="session-tag">#15минутспустя</p>
+        <p class="session-label" id="session-label">Выбранный концепт</p>
+        <h2 class="session-concept" id="session-concept">Нейропластичность</h2>
+
+        <div class="timer-orb" id="timer-orb" style="--timer-progress: 1;">
+          <div class="timer-orb-inner">
+            <span class="timer-label" id="timer-stage">15 минут исследования</span>
+            <strong class="timer-value" id="timer-value">15:00</strong>
+          </div>
+        </div>
+
+        <button
+          id="session-button"
+          class="spin-button session-button"
+          type="button"
+        >
+          Начать 15 мин
+        </button>
+      </section>
+
+      <footer class="site-footer">
+        <a
+          class="credit-link"
+          id="credit-link"
+          href="https://rubencastelar.github.io/15-minutos-despues/"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Вдохновлено проектом 15-minutos-después — rubi_castelar
+        </a>
+      </footer>
+    </main>
+
+    <script src="./app.js?v=2026-08-07"></script>
+  </body>
+</html>
