@@ -18,7 +18,7 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=2026-08-07b" />
+    <link rel="stylesheet" href="./styles.css?v=2026-08-07c" />
   </head>
   <body>
     <div class="ambient ambient-left"></div>
@@ -69,6 +69,34 @@
             Запустить поиск
           </button>
           <p class="kbd-hint" id="kbd-hint">Пробел — крутить</p>
+        </section>
+
+        <section class="setup" id="setup">
+          <div class="preset-row" id="preset-row" role="group" aria-label="Режим">
+            <button type="button" class="preset-chip" data-preset="fast">5·1</button>
+            <button type="button" class="preset-chip is-active" data-preset="std">15·1</button>
+            <button type="button" class="preset-chip" data-preset="pomodoro">25·5</button>
+            <button type="button" class="preset-chip" data-preset="custom" id="preset-custom">
+              Свой
+            </button>
+          </div>
+          <div class="custom-row" id="custom-row" hidden>
+            <div class="stepper" data-field="study">
+              <button type="button" class="step-btn step-down" aria-label="−">−</button>
+              <span class="step-value" id="custom-study">20</span>
+              <button type="button" class="step-btn step-up" aria-label="+">+</button>
+              <span class="step-label" id="custom-study-label">иссл., мин</span>
+            </div>
+            <div class="stepper" data-field="present">
+              <button type="button" class="step-btn step-down" aria-label="−">−</button>
+              <span class="step-value" id="custom-present">2</span>
+              <button type="button" class="step-btn step-up" aria-label="+">+</button>
+              <span class="step-label" id="custom-present-label">пересказ, мин</span>
+            </div>
+          </div>
+          <button type="button" class="toggle-chip" id="write-toggle" aria-pressed="false">
+            ✎ <span id="write-toggle-label">Письмо</span>
+          </button>
         </section>
 
         <section class="stats-bar" id="stats-bar">
@@ -125,16 +153,21 @@
           <ul class="brief-questions" id="brief-questions"></ul>
         </div>
 
-        <p class="present-prompt" id="present-prompt" hidden>
-          Теперь расскажи вслух по памяти — как будто объясняешь другому.
-        </p>
+        <p class="stage-prompt" id="stage-prompt" hidden></p>
 
         <div class="timer-orb" id="timer-orb" style="--timer-progress: 1;" hidden>
           <div class="timer-orb-inner">
-            <span class="timer-label" id="timer-stage">15 минут исследования</span>
+            <span class="timer-label" id="timer-stage">Исследование</span>
             <strong class="timer-value" id="timer-value">15:00</strong>
           </div>
         </div>
+
+        <textarea
+          class="write-area"
+          id="write-area"
+          hidden
+          placeholder="Пиши по памяти…"
+        ></textarea>
 
         <p class="timer-hint" id="timer-hint" hidden>Клик по таймеру — пауза</p>
 
@@ -152,6 +185,11 @@
         <p class="persistent-tag" id="recall-tag">#15минутспустя</p>
         <p class="recall-title" id="recall-title">Насколько хорошо вспомнил?</p>
         <h2 class="session-concept" id="recall-concept">Нейропластичность</h2>
+
+        <div class="recall-written" id="recall-written" hidden>
+          <span class="recall-def-label" id="recall-written-label">Что ты написал</span>
+          <p class="recall-written-text" id="recall-written-text"></p>
+        </div>
 
         <div class="recall-def">
           <span class="recall-def-label" id="recall-def-label">Определение</span>
@@ -179,7 +217,7 @@
       </div>
     </main>
 
-    <script src="./concepts.js?v=2026-08-07b"></script>
-    <script src="./app.js?v=2026-08-07b"></script>
+    <script src="./concepts.js?v=2026-08-07c"></script>
+    <script src="./app.js?v=2026-08-07c"></script>
   </body>
 </html>

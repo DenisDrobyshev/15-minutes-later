@@ -3,11 +3,11 @@
 /* ============================================================================
  * 15 Minutes Later — bilingual focus roulette with a spaced-repetition core.
  *
- * Loop: spin -> research brief (concept + guiding questions) -> 15-min study ->
- * 1-min recall aloud -> self-grade. The grade feeds an SM-2-lite scheduler that
- * decides when the concept comes back. Progress, streak, and stats persist in
- * localStorage. Concept data (names, definitions, questions) lives in
- * concepts.js as CONCEPT_DATA.
+ * Loop: spin -> research brief (concept + guiding questions) -> timed stages
+ * (research, optional written recall, spoken recall) -> self-grade. The grade
+ * feeds an SM-2-lite scheduler that decides when the concept comes back. Stage
+ * lengths are configurable (presets or custom). Progress, streak, settings, and
+ * stats persist in localStorage. Concept data lives in concepts.js.
  * ==========================================================================*/
 
 const N = CONCEPT_DATA.length;
@@ -21,7 +21,7 @@ const STRINGS = {
     docTitle: "15 минут спустя · Рулетка фокуса",
     heroTag: "#15минутспустя",
     heroTitle: "Тренируй память, концентрацию<br />и нейронные связи.",
-    heroSubtitle: "Рулетка выбирает концепт — у тебя 15 минут, чтобы в нём разобраться.",
+    heroSubtitle: "Рулетка выбирает концепт — а ты разбираешь его за отведённое время.",
     resultLabel: "Итоговый выбор",
     resultIdle: "Ожидание запуска",
     resultExploring: "Перебираю возможности…",
@@ -30,21 +30,30 @@ const STRINGS = {
     spinAgain: "Крутить снова",
     kbdHint: "Пробел — крутить",
     reset: "Сброс",
+    presetCustom: "Свой",
+    customStudyLabel: "иссл., мин",
+    customPresentLabel: "пересказ, мин",
+    writeToggle: "Письмо",
+    writeToggleAria: "Письменное припоминание",
     statToday: "Сегодня",
     statStreak: "Стрик",
     statDue: "К возврату",
     statStudied: "Изучено",
     sessionLabel: "Выбранный концепт",
     briefLabel: "С чего начать",
-    studyLabel: "15 минут исследования",
+    studyLabel: "Исследование",
+    writeLabel: "Письмо по памяти",
     presentLabel: "Презентация",
-    startStudy: "Начать 15 мин",
-    startPresent: "Начать 1 мин",
+    startN: (m) => `Начать ${m} мин`,
+    done: "Готово",
     presentPrompt: "Теперь расскажи вслух по памяти — как будто объясняешь другому.",
+    writePrompt: "Сейчас — письменное припоминание. Пиши по памяти всё, что вспомнишь.",
+    writePlaceholder: "Пиши по памяти…",
     paused: "На паузе",
     timerHint: "Клик по таймеру — пауза",
     back: "← Назад",
     recallTitle: "Насколько хорошо вспомнил?",
+    recallWrittenLabel: "Что ты написал",
     recallDefLabel: "Определение",
     gradeAgain: "Не помню",
     gradeHard: "Трудно",
@@ -60,7 +69,7 @@ const STRINGS = {
     docTitle: "15 Minutes Later · Focus Roulette",
     heroTag: "#15minuteslater",
     heroTitle: "Train your memory, focus<br />and neural connections.",
-    heroSubtitle: "The roulette picks a concept — you get 15 minutes to explore it.",
+    heroSubtitle: "The roulette picks a concept — you explore it within the time you set.",
     resultLabel: "Final selection",
     resultIdle: "Awaiting activation",
     resultExploring: "Exploring possibilities…",
@@ -69,21 +78,30 @@ const STRINGS = {
     spinAgain: "Spin again",
     kbdHint: "Space to spin",
     reset: "Reset",
+    presetCustom: "Custom",
+    customStudyLabel: "research, min",
+    customPresentLabel: "recall, min",
+    writeToggle: "Write",
+    writeToggleAria: "Written recall",
     statToday: "Today",
     statStreak: "Streak",
     statDue: "Due",
     statStudied: "Studied",
     sessionLabel: "Selected concept",
     briefLabel: "Where to start",
-    studyLabel: "15 minutes of research",
+    studyLabel: "Research",
+    writeLabel: "Written recall",
     presentLabel: "Presentation",
-    startStudy: "Start 15 min",
-    startPresent: "Start 1 min",
+    startN: (m) => `Start ${m} min`,
+    done: "Done",
     presentPrompt: "Now recall it aloud from memory — as if explaining to someone.",
+    writePrompt: "Time for written recall. Write down everything you can remember.",
+    writePlaceholder: "Write from memory…",
     paused: "Paused",
     timerHint: "Click the timer to pause",
     back: "← Back",
     recallTitle: "How well did you recall it?",
+    recallWrittenLabel: "What you wrote",
     recallDefLabel: "Definition",
     gradeAgain: "Blank",
     gradeHard: "Hard",
@@ -97,11 +115,19 @@ const STRINGS = {
   },
 };
 
-const TIMER_STAGES = [
-  { key: "study", labelKey: "studyLabel", durationSeconds: 15 * 60 },
-  { key: "present", labelKey: "presentLabel", durationSeconds: 60 },
-];
-
+/* ---------------------------------------------------------------------------
+ * Session timing config.
+ * ------------------------------------------------------------------------- */
+const PRESETS = {
+  fast: { study: 5, present: 1 },
+  std: { study: 15, present: 1 },
+  pomodoro: { study: 25, present: 5 },
+};
+const WRITE_MINUTES = 2;
+const CUSTOM_STUDY_MIN = 1;
+const CUSTOM_STUDY_MAX = 60;
+const CUSTOM_PRESENT_MIN = 1;
+const CUSTOM_PRESENT_MAX = 15;
 const GOAL_CYCLE = [1, 3, 5, 10];
 
 /* ---------------------------------------------------------------------------
@@ -123,6 +149,17 @@ const resultLabelEl = document.getElementById("result-label");
 const resultPanelEl = document.querySelector(".result-panel");
 const kbdHintEl = document.getElementById("kbd-hint");
 
+const presetChips = Array.from(document.querySelectorAll(".preset-chip"));
+const presetCustomChip = document.getElementById("preset-custom");
+const customRow = document.getElementById("custom-row");
+const customStudyEl = document.getElementById("custom-study");
+const customPresentEl = document.getElementById("custom-present");
+const customStudyLabelEl = document.getElementById("custom-study-label");
+const customPresentLabelEl = document.getElementById("custom-present-label");
+const stepperEls = Array.from(document.querySelectorAll(".stepper"));
+const writeToggleEl = document.getElementById("write-toggle");
+const writeToggleLabelEl = document.getElementById("write-toggle-label");
+
 const statTodayEl = document.getElementById("stat-today");
 const statTodayKeyEl = document.getElementById("stat-today-key");
 const statStreakEl = document.getElementById("stat-streak");
@@ -143,16 +180,20 @@ const sessionConceptEl = document.getElementById("session-concept");
 const briefEl = document.getElementById("session-brief");
 const briefLabelEl = document.getElementById("brief-label");
 const briefQuestionsEl = document.getElementById("brief-questions");
-const presentPromptEl = document.getElementById("present-prompt");
+const stagePromptEl = document.getElementById("stage-prompt");
 const orbEl = document.getElementById("timer-orb");
 const timerStageEl = document.getElementById("timer-stage");
 const timerValueEl = document.getElementById("timer-value");
+const writeAreaEl = document.getElementById("write-area");
 const timerHintEl = document.getElementById("timer-hint");
 const sessionButton = document.getElementById("session-button");
 
 const recallTagEl = document.getElementById("recall-tag");
 const recallTitleEl = document.getElementById("recall-title");
 const recallConceptEl = document.getElementById("recall-concept");
+const recallWrittenEl = document.getElementById("recall-written");
+const recallWrittenLabelEl = document.getElementById("recall-written-label");
+const recallWrittenTextEl = document.getElementById("recall-written-text");
 const recallDefLabelEl = document.getElementById("recall-def-label");
 const recallDefTextEl = document.getElementById("recall-def-text");
 const gradeButtons = Array.from(document.querySelectorAll(".grade-button"));
@@ -163,12 +204,13 @@ const soundToggleEl = document.getElementById("sound-toggle");
 const langButtons = Array.from(document.querySelectorAll(".lang-button"));
 
 /* ---------------------------------------------------------------------------
- * Config / persistence keys.
+ * Persistence keys.
  * ------------------------------------------------------------------------- */
 const bufferItems = 2;
 const LANG_KEY = "fml.lang";
 const SOUND_KEY = "fml.sound";
 const STORE_KEY = "fml.store.v1";
+const SETTINGS_KEY = "fml.settings.v1";
 const STORE_VERSION = 1;
 
 const prefersReducedMotion =
@@ -186,8 +228,10 @@ let currentIndex = 0;
 let travelOffset = 0;
 let currentWinnerIndex = null;
 let lastWinnerIndex = null;
-let currentMode = "idle"; // idle | brief | studying | presentReady | presenting | recall
+let currentMode = "idle"; // idle | brief | stageReady | running | recall
+let sessionStages = [];
 let currentStageIndex = 0;
+let writtenText = "";
 let timerIntervalId;
 let timerDeadline = 0;
 let timerPaused = false;
@@ -195,9 +239,10 @@ let remainingMsAtPause = 0;
 let currentStageDurationSeconds = 0;
 
 let store = freshStore();
+let settings = freshSettings();
 
 /* ---------------------------------------------------------------------------
- * Storage helpers (fail-safe).
+ * Storage helpers.
  * ------------------------------------------------------------------------- */
 function safeGet(key) {
   try {
@@ -213,6 +258,40 @@ function safeSet(key, value) {
   } catch (error) {
     /* ignore */
   }
+}
+
+function clampInt(value, min, max) {
+  const n = Math.round(Number(value));
+  if (Number.isNaN(n)) return min;
+  return Math.min(max, Math.max(min, n));
+}
+
+function freshSettings() {
+  return { preset: "std", customStudy: 20, customPresent: 2, writtenRecall: false };
+}
+
+function loadSettings() {
+  const raw = safeGet(SETTINGS_KEY);
+  if (!raw) return freshSettings();
+  try {
+    const parsed = JSON.parse(raw);
+    const base = freshSettings();
+    const preset = ["fast", "std", "pomodoro", "custom"].includes(parsed.preset)
+      ? parsed.preset
+      : "std";
+    return {
+      preset,
+      customStudy: clampInt(parsed.customStudy ?? base.customStudy, CUSTOM_STUDY_MIN, CUSTOM_STUDY_MAX),
+      customPresent: clampInt(parsed.customPresent ?? base.customPresent, CUSTOM_PRESENT_MIN, CUSTOM_PRESENT_MAX),
+      writtenRecall: Boolean(parsed.writtenRecall),
+    };
+  } catch (error) {
+    return freshSettings();
+  }
+}
+
+function saveSettings() {
+  safeSet(SETTINGS_KEY, JSON.stringify(settings));
 }
 
 function freshCard() {
@@ -238,9 +317,7 @@ function freshStore() {
 
 function loadStore() {
   const raw = safeGet(STORE_KEY);
-  if (!raw) {
-    return freshStore();
-  }
+  if (!raw) return freshStore();
   try {
     const parsed = JSON.parse(raw);
     if (
@@ -284,10 +361,7 @@ function prevDateKey(key) {
 }
 
 /* ---------------------------------------------------------------------------
- * Spaced-repetition scheduler (SM-2-lite).
- *
- * computeSchedule is pure: it returns the next card state for a grade without
- * mutating anything, so the recall screen can preview each button's interval.
+ * Spaced-repetition scheduler (SM-2-lite). computeSchedule is pure.
  * Grades: 0 again, 1 hard, 2 good, 3 easy.
  * ------------------------------------------------------------------------- */
 function computeSchedule(card, grade) {
@@ -319,10 +393,6 @@ function computeSchedule(card, grade) {
   return { reps: card.reps + 1, lapses: card.lapses, ease, interval: days, days };
 }
 
-/* ---------------------------------------------------------------------------
- * Selection model — review-first, then new, weighted by how overdue a card is.
- * The previous winner is excluded so nothing repeats twice in a row.
- * ------------------------------------------------------------------------- */
 function weightedPick(list, weightFn) {
   let total = 0;
   const weights = list.map((i) => {
@@ -369,18 +439,13 @@ function selectWinner() {
     winner = topK[Math.floor(Math.random() * topK.length)];
   }
 
-  if (winner === undefined) {
-    winner = Math.floor(Math.random() * N);
-  }
-
+  if (winner === undefined) winner = Math.floor(Math.random() * N);
   saveStore();
   return winner;
 }
 
 function gradeCurrent(grade) {
-  if (currentWinnerIndex === null) {
-    return;
-  }
+  if (currentWinnerIndex === null) return;
   const card = store.cards[currentWinnerIndex];
   const sched = computeSchedule(card, grade);
   const now = Date.now();
@@ -432,9 +497,7 @@ function displayTodayCount() {
 function displayStreak() {
   const today = dateKey(Date.now());
   const last = store.stats.lastStudyDate;
-  if (last === today || last === prevDateKey(today)) {
-    return store.stats.streak || 0;
-  }
+  if (last === today || last === prevDateKey(today)) return store.stats.streak || 0;
   return 0;
 }
 
@@ -454,6 +517,53 @@ function detectInitialLang() {
   if (saved === "ru" || saved === "en") return saved;
   const nav = (navigator.language || "en").toLowerCase();
   return nav.startsWith("ru") ? "ru" : "en";
+}
+
+/* ---------------------------------------------------------------------------
+ * Session timing resolution.
+ * ------------------------------------------------------------------------- */
+function resolveDurations() {
+  if (settings.preset === "custom") {
+    return {
+      study: clampInt(settings.customStudy, CUSTOM_STUDY_MIN, CUSTOM_STUDY_MAX),
+      present: clampInt(settings.customPresent, CUSTOM_PRESENT_MIN, CUSTOM_PRESENT_MAX),
+    };
+  }
+  const p = PRESETS[settings.preset] || PRESETS.std;
+  return { study: p.study, present: p.present };
+}
+
+function buildSessionStages() {
+  const { study, present } = resolveDurations();
+  const list = [{ key: "study", minutes: study }];
+  if (settings.writtenRecall) list.push({ key: "write", minutes: WRITE_MINUTES });
+  list.push({ key: "present", minutes: present });
+  return list.map((s) => ({
+    key: s.key,
+    minutes: s.minutes,
+    durationSeconds: s.minutes * 60,
+    labelKey: s.key === "study" ? "studyLabel" : s.key === "write" ? "writeLabel" : "presentLabel",
+  }));
+}
+
+/* ---------------------------------------------------------------------------
+ * Settings UI.
+ * ------------------------------------------------------------------------- */
+function applySettingsUi() {
+  presetChips.forEach((chip) => {
+    chip.classList.toggle("is-active", chip.dataset.preset === settings.preset);
+    chip.setAttribute("aria-pressed", String(chip.dataset.preset === settings.preset));
+  });
+  presetCustomChip.textContent = t().presetCustom;
+  customRow.hidden = settings.preset !== "custom";
+  customStudyEl.textContent = String(settings.customStudy);
+  customPresentEl.textContent = String(settings.customPresent);
+  customStudyLabelEl.textContent = t().customStudyLabel;
+  customPresentLabelEl.textContent = t().customPresentLabel;
+  writeToggleEl.classList.toggle("is-active", settings.writtenRecall);
+  writeToggleEl.setAttribute("aria-pressed", String(settings.writtenRecall));
+  writeToggleEl.setAttribute("aria-label", t().writeToggleAria);
+  writeToggleLabelEl.textContent = t().writeToggle;
 }
 
 /* ---------------------------------------------------------------------------
@@ -576,7 +686,7 @@ function playWinTone() {
 }
 
 /* ---------------------------------------------------------------------------
- * Timer.
+ * Timer / stages.
  * ------------------------------------------------------------------------- */
 function formatTime(totalSeconds) {
   const minutes = Math.floor(totalSeconds / 60);
@@ -593,7 +703,7 @@ function updateTimerProgress(progress) {
 }
 
 function prepOrb(stageIndex) {
-  const stage = TIMER_STAGES[stageIndex];
+  const stage = sessionStages[stageIndex];
   updateTimerDisplay(stage.durationSeconds);
   updateTimerProgress(1);
   timerStageEl.textContent = t()[stage.labelKey];
@@ -609,7 +719,7 @@ function stopTimer() {
 
 function startStage(stageIndex) {
   currentStageIndex = stageIndex;
-  const stage = TIMER_STAGES[stageIndex];
+  const stage = sessionStages[stageIndex];
   currentStageDurationSeconds = stage.durationSeconds;
   timerPaused = false;
   stopTimer();
@@ -619,7 +729,9 @@ function startStage(stageIndex) {
   timerStageEl.textContent = t()[stage.labelKey];
   orbEl.classList.remove("is-finished", "is-paused");
   orbEl.classList.add("is-running");
-  setMode(stageIndex === 0 ? "studying" : "presenting");
+  if (stage.key === "write") writeAreaEl.value = writtenText || "";
+  setMode("running");
+  if (stage.key === "write") window.setTimeout(() => writeAreaEl.focus(), 0);
   timerIntervalId = window.setInterval(timerTick, 250);
 }
 
@@ -628,20 +740,31 @@ function timerTick() {
   updateTimerDisplay(remaining);
   updateTimerProgress(currentStageDurationSeconds ? remaining / currentStageDurationSeconds : 0);
   if (remaining > 0) return;
-
   stopTimer();
   orbEl.classList.remove("is-running");
   playWinTone();
+  advanceStage();
+}
 
-  if (currentStageIndex === 0) {
-    enterPresentReady();
+function advanceStage() {
+  const stage = sessionStages[currentStageIndex];
+  if (stage.key === "write") writtenText = writeAreaEl.value.trim();
+  if (currentStageIndex < sessionStages.length - 1) {
+    enterStageReady(currentStageIndex + 1);
   } else {
     enterRecall();
   }
 }
 
+function finishStageEarly() {
+  if (currentMode !== "running") return;
+  stopTimer();
+  orbEl.classList.remove("is-running");
+  advanceStage();
+}
+
 function pauseTimer() {
-  if (!(currentMode === "studying" || currentMode === "presenting") || timerPaused) return;
+  if (currentMode !== "running" || timerPaused) return;
   timerPaused = true;
   stopTimer();
   remainingMsAtPause = Math.max(0, timerDeadline - Date.now());
@@ -654,12 +777,12 @@ function resumeTimer() {
   timerPaused = false;
   timerDeadline = Date.now() + remainingMsAtPause;
   orbEl.classList.remove("is-paused");
-  timerStageEl.textContent = t()[TIMER_STAGES[currentStageIndex].labelKey];
+  timerStageEl.textContent = t()[sessionStages[currentStageIndex].labelKey];
   timerIntervalId = window.setInterval(timerTick, 250);
 }
 
 function toggleTimerPause() {
-  if (!(currentMode === "studying" || currentMode === "presenting")) return;
+  if (currentMode !== "running") return;
   if (timerPaused) resumeTimer();
   else pauseTimer();
 }
@@ -668,15 +791,24 @@ function toggleTimerPause() {
  * View / mode machine.
  * ------------------------------------------------------------------------- */
 function applySessionSubview(mode) {
-  const showBrief = mode === "brief";
-  const showPresentPrompt = mode === "presentReady";
-  const showOrb = mode === "studying" || mode === "presenting" || mode === "presentReady";
-  const running = mode === "studying" || mode === "presenting";
-  briefEl.hidden = !showBrief;
-  presentPromptEl.hidden = !showPresentPrompt;
-  orbEl.hidden = !showOrb;
-  timerHintEl.hidden = !running;
-  sessionButton.hidden = running;
+  const stage = sessionStages[currentStageIndex];
+  const isRunning = mode === "running";
+  const isWriteRunning = isRunning && stage && stage.key === "write";
+
+  briefEl.hidden = mode !== "brief";
+  stagePromptEl.hidden = mode !== "stageReady";
+  orbEl.hidden = !(isRunning || mode === "stageReady");
+  writeAreaEl.hidden = !isWriteRunning;
+  timerHintEl.hidden = !(isRunning && !isWriteRunning);
+
+  // The start button shows on ready screens; while running it hides, except the
+  // write stage keeps a "Done" button to finish early.
+  if (isWriteRunning) {
+    sessionButton.hidden = false;
+    sessionButton.textContent = t().done;
+  } else {
+    sessionButton.hidden = isRunning;
+  }
 }
 
 function setMode(mode) {
@@ -697,28 +829,38 @@ function setMode(mode) {
  * Session flow.
  * ------------------------------------------------------------------------- */
 function enterBrief(index) {
+  sessionStages = buildSessionStages();
   currentStageIndex = 0;
+  writtenText = "";
+  writeAreaEl.value = "";
   sessionConceptEl.textContent = conceptName(index);
   renderBrief(index);
   prepOrb(0);
-  sessionButton.textContent = t().startStudy;
+  sessionButton.textContent = t().startN(sessionStages[0].minutes);
   sessionButton.disabled = false;
   setMode("brief");
 }
 
-function enterPresentReady() {
-  currentStageIndex = 1;
-  prepOrb(1);
-  presentPromptEl.textContent = t().presentPrompt;
-  sessionButton.textContent = t().startPresent;
+function enterStageReady(index) {
+  currentStageIndex = index;
+  const stage = sessionStages[index];
+  prepOrb(index);
+  stagePromptEl.textContent = stage.key === "write" ? t().writePrompt : t().presentPrompt;
+  sessionButton.textContent = t().startN(stage.minutes);
   sessionButton.disabled = false;
-  setMode("presentReady");
+  setMode("stageReady");
 }
 
 function enterRecall() {
   const index = currentWinnerIndex;
   recallConceptEl.textContent = conceptName(index);
   recallDefTextEl.textContent = CONCEPT_DATA[index][lang].def;
+  if (writtenText) {
+    recallWrittenTextEl.textContent = writtenText;
+    recallWrittenEl.hidden = false;
+  } else {
+    recallWrittenEl.hidden = true;
+  }
   renderGradePreviews(index);
   setMode("recall");
 }
@@ -831,6 +973,7 @@ function applyLanguage(next) {
   resultLabelEl.textContent = s.resultLabel;
   kbdHintEl.textContent = s.kbdHint;
   resetButton.textContent = s.reset;
+  writeAreaEl.setAttribute("placeholder", s.writePlaceholder);
 
   statTodayKeyEl.textContent = s.statToday;
   statStreakKeyEl.textContent = s.statStreak;
@@ -841,11 +984,11 @@ function applyLanguage(next) {
   sessionLabelEl.textContent = s.sessionLabel;
   backButton.textContent = s.back;
   backButton.setAttribute("aria-label", s.back.replace(/^[←\s]+/, ""));
-  presentPromptEl.textContent = s.presentPrompt;
   timerHintEl.textContent = s.timerHint;
 
   recallTagEl.textContent = s.heroTag;
   recallTitleEl.textContent = s.recallTitle;
+  recallWrittenLabelEl.textContent = s.recallWrittenLabel;
   recallDefLabelEl.textContent = s.recallDefLabel;
   gradeLabelEls[0].textContent = s.gradeAgain;
   gradeLabelEls[1].textContent = s.gradeHard;
@@ -860,8 +1003,7 @@ function applyLanguage(next) {
     btn.setAttribute("aria-pressed", String(active));
   });
   updateSoundToggleUi();
-
-  // Re-render language-dependent, state-aware content.
+  applySettingsUi();
   renderStats();
 
   if (currentWinnerIndex !== null) {
@@ -872,19 +1014,23 @@ function applyLanguage(next) {
     renderGradePreviews(currentWinnerIndex);
   }
 
-  if (!isSpinning) {
-    if (currentMode === "idle") {
-      resultText.textContent =
-        currentWinnerIndex !== null ? conceptName(currentWinnerIndex) : s.resultIdle;
-      spinButton.textContent = currentWinnerIndex !== null ? s.spinAgain : s.spinStart;
-    }
+  if (!isSpinning && currentMode === "idle") {
+    resultText.textContent =
+      currentWinnerIndex !== null ? conceptName(currentWinnerIndex) : s.resultIdle;
+    spinButton.textContent = currentWinnerIndex !== null ? s.spinAgain : s.spinStart;
   }
 
-  // Session button label reflects the current stage when not running.
-  if (currentMode === "brief") sessionButton.textContent = s.startStudy;
-  if (currentMode === "presentReady") sessionButton.textContent = s.startPresent;
-  if (!timerPaused && (currentMode === "studying" || currentMode === "presenting")) {
-    timerStageEl.textContent = s[TIMER_STAGES[currentStageIndex].labelKey];
+  if (sessionStages.length) {
+    if (currentMode === "brief") {
+      sessionButton.textContent = s.startN(sessionStages[0].minutes);
+    } else if (currentMode === "stageReady") {
+      const stage = sessionStages[currentStageIndex];
+      stagePromptEl.textContent = stage.key === "write" ? s.writePrompt : s.presentPrompt;
+      sessionButton.textContent = s.startN(stage.minutes);
+    } else if (currentMode === "running" && !timerPaused) {
+      timerStageEl.textContent = s[sessionStages[currentStageIndex].labelKey];
+      if (sessionStages[currentStageIndex].key === "write") sessionButton.textContent = s.done;
+    }
   }
 
   renderRoulette(currentMode !== "idle" ? currentWinnerIndex : null);
@@ -912,22 +1058,18 @@ window.addEventListener("resize", () => {
 window.addEventListener("keydown", (event) => {
   if (event.code !== "Space" || shouldIgnoreSpaceTrigger(event.target)) return;
   event.preventDefault();
-  if (currentMode === "idle") {
-    spin();
-  } else if (currentMode === "brief") {
-    startStage(0);
-  } else if (currentMode === "presentReady") {
-    startStage(1);
-  } else if (currentMode === "studying" || currentMode === "presenting") {
-    toggleTimerPause();
-  }
+  if (currentMode === "idle") spin();
+  else if (currentMode === "brief") startStage(0);
+  else if (currentMode === "stageReady") startStage(currentStageIndex);
+  else if (currentMode === "running") toggleTimerPause();
 });
 
 spinButton.addEventListener("click", spin);
 
 sessionButton.addEventListener("click", () => {
   if (currentMode === "brief") startStage(0);
-  else if (currentMode === "presentReady") startStage(1);
+  else if (currentMode === "stageReady") startStage(currentStageIndex);
+  else if (currentMode === "running") finishStageEarly();
 });
 
 orbEl.addEventListener("click", toggleTimerPause);
@@ -953,6 +1095,37 @@ statGoalEl.addEventListener("click", () => {
   renderStats();
 });
 
+presetChips.forEach((chip) => {
+  chip.addEventListener("click", () => {
+    settings.preset = chip.dataset.preset;
+    saveSettings();
+    applySettingsUi();
+  });
+});
+
+stepperEls.forEach((stepper) => {
+  const field = stepper.dataset.field;
+  const min = field === "study" ? CUSTOM_STUDY_MIN : CUSTOM_PRESENT_MIN;
+  const max = field === "study" ? CUSTOM_STUDY_MAX : CUSTOM_PRESENT_MAX;
+  const key = field === "study" ? "customStudy" : "customPresent";
+  stepper.querySelector(".step-down").addEventListener("click", () => {
+    settings[key] = clampInt(settings[key] - 1, min, max);
+    saveSettings();
+    applySettingsUi();
+  });
+  stepper.querySelector(".step-up").addEventListener("click", () => {
+    settings[key] = clampInt(settings[key] + 1, min, max);
+    saveSettings();
+    applySettingsUi();
+  });
+});
+
+writeToggleEl.addEventListener("click", () => {
+  settings.writtenRecall = !settings.writtenRecall;
+  saveSettings();
+  applySettingsUi();
+});
+
 soundToggleEl.addEventListener("click", () => {
   soundEnabled = !soundEnabled;
   safeSet(SOUND_KEY, soundEnabled ? "on" : "off");
@@ -968,6 +1141,7 @@ langButtons.forEach((btn) => {
  * Boot.
  * ------------------------------------------------------------------------- */
 store = loadStore();
+settings = loadSettings();
 lang = detectInitialLang();
 soundEnabled = safeGet(SOUND_KEY) !== "off";
 applyLanguage(lang);
@@ -977,8 +1151,11 @@ resultText.textContent = currentWinnerIndex !== null ? conceptName(currentWinner
 if (location.search.indexOf("debug") !== -1) {
   window.__fml = {
     get store() { return store; },
+    get settings() { return settings; },
     get mode() { return currentMode; },
     get winner() { return currentWinnerIndex; },
+    get stages() { return sessionStages; },
+    get written() { return writtenText; },
     spin, startStage, enterRecall, gradeCurrent, selectWinner, computeSchedule,
     expireTimer() { timerDeadline = Date.now() - 1; timerTick(); },
   };

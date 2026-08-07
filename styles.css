@@ -649,6 +649,161 @@ button.stat:hover {
   opacity: 0.85;
 }
 
+/* ---- Session setup (idle) ---- */
+.setup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: min(520px, calc(100vw - 32px));
+}
+
+.preset-row {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--chip-bg);
+}
+
+.preset-chip {
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 11px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.preset-chip:hover {
+  color: var(--text);
+}
+
+.preset-chip.is-active {
+  color: var(--btn-text);
+  background: linear-gradient(90deg, var(--btn-from), var(--btn-to));
+}
+
+.toggle-chip {
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  background: var(--chip-bg);
+  cursor: pointer;
+  transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.toggle-chip:hover {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+.toggle-chip.is-active {
+  color: var(--btn-text);
+  border-color: transparent;
+  background: linear-gradient(90deg, var(--btn-from), var(--btn-to));
+}
+
+.custom-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--result-bg);
+}
+
+.step-btn {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text);
+  background: var(--chip-bg);
+  cursor: pointer;
+}
+
+.step-btn:hover {
+  background: var(--accent-2);
+}
+
+.step-value {
+  min-width: 20px;
+  text-align: center;
+  font-family: "Syne", sans-serif;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.step-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+/* ---- Write stage textarea ---- */
+.write-area {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line-strong);
+  background: var(--result-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.write-area:focus {
+  outline: none;
+  border-color: var(--focus-ring);
+}
+
+/* ---- Recall: what you wrote ---- */
+.recall-written {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px dashed var(--line-strong);
+  text-align: left;
+}
+
+.recall-written-text {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
 .back-button {
   position: absolute;
   top: -4px;
