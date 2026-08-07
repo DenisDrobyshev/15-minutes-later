@@ -1,0 +1,365 @@
+"use strict";
+
+/* ============================================================================
+ * Concept data — index-aligned bilingual records.
+ * Each entry: { ru:{name,def,q[]}, en:{name,def,q[]} }
+ *   name — the concept label shown on the roulette and session screens
+ *   def  — one-line reference definition, revealed on the recall/grade screen
+ *   q    — 2 guiding questions shown as the research brief
+ * ==========================================================================*/
+const CONCEPT_DATA = [
+  // ---- Память и обучение / Memory & learning ----
+  {
+    ru: { name: "Нейропластичность", def: "Способность мозга перестраивать связи в ответ на опыт.",
+      q: ["Какой опыт запускает её сильнее всего?", "Как она меняется с возрастом?"] },
+    en: { name: "Neuroplasticity", def: "The brain's ability to rewire its connections in response to experience.",
+      q: ["What kinds of experience drive it most?", "How does it change across a lifetime?"] },
+  },
+  {
+    ru: { name: "Интервальное повторение", def: "Повторение материала через растущие интервалы, чтобы не забыть.",
+      q: ["Почему растущие интервалы лучше зубрёжки?", "Как выбирается следующий интервал?"] },
+    en: { name: "Spaced repetition", def: "Reviewing material at increasing intervals to fight forgetting.",
+      q: ["Why do expanding intervals beat cramming?", "How is the next interval chosen?"] },
+  },
+  {
+    ru: { name: "Рабочая память", def: "Небольшое хранилище, что удерживает и обрабатывает информацию прямо сейчас.",
+      q: ["Сколько элементов она вмещает?", "Чем отличается от долговременной памяти?"] },
+    en: { name: "Working memory", def: "The small store that holds and manipulates information right now.",
+      q: ["How many items can it hold?", "How does it differ from long-term memory?"] },
+  },
+  {
+    ru: { name: "Долговременная потенциация", def: "Стойкое усиление синапса после повторной активации — клеточная основа памяти.",
+      q: ["Что запускает её в синапсе?", "Почему её зовут основой обучения?"] },
+    en: { name: "Long-term potentiation", def: "Lasting strengthening of a synapse after repeated activation — memory's cellular basis.",
+      q: ["What triggers it at the synapse?", "Why is it called the basis of learning?"] },
+  },
+  {
+    ru: { name: "Консолидация памяти", def: "Процесс, что закрепляет свежую память в долговременное хранилище.",
+      q: ["Какова роль сна?", "Когда память наиболее хрупкая?"] },
+    en: { name: "Memory consolidation", def: "The process that stabilizes a fresh memory into long-term storage.",
+      q: ["What role does sleep play?", "When is a memory most fragile?"] },
+  },
+  {
+    ru: { name: "Кривая забывания", def: "Открытие Эббингауза: без повторения память падает быстро.",
+      q: ["Насколько быстр первый спад?", "Что сглаживает кривую?"] },
+    en: { name: "The forgetting curve", def: "Ebbinghaus's finding that memory decays fast without review.",
+      q: ["How fast is the initial drop?", "What flattens the curve?"] },
+  },
+  {
+    ru: { name: "Группировка информации", def: "Объединение элементов в осмысленные блоки, чтобы удержать больше.",
+      q: ["Пример на номере телефона?", "Почему опыт улучшает группировку?"] },
+    en: { name: "Chunking", def: "Grouping items into meaningful units to hold more at once.",
+      q: ["Give an example with a phone number.", "Why does expertise improve chunking?"] },
+  },
+  {
+    ru: { name: "Активное припоминание", def: "Извлечение из памяти — укрепляет её сильнее, чем перечитывание.",
+      q: ["Почему припоминание лучше перечитывания?", "Что такое «желательная трудность»?"] },
+    en: { name: "Retrieval practice", def: "Recalling from memory, which strengthens it more than rereading.",
+      q: ["Why does recall beat rereading?", "What makes retrieval a desirable difficulty?"] },
+  },
+  {
+    ru: { name: "Эффект тестирования", def: "Тестирование улучшает удержание сильнее, чем лишнее чтение.",
+      q: ["Как связан с активным припоминанием?", "Работают ли лёгкие квизы?"] },
+    en: { name: "The testing effect", def: "Being tested improves later retention more than extra studying.",
+      q: ["How does it relate to retrieval practice?", "Do low-stakes quizzes work?"] },
+  },
+  {
+    ru: { name: "Чередование практики", def: "Смешивание разных тем в одной сессии вместо блоков.",
+      q: ["Почему смешивание помогает переносу?", "Когда оно вредит?"] },
+    en: { name: "Interleaving", def: "Mixing different topics in one session instead of blocking them.",
+      q: ["Why does mixing help transfer?", "When can it hurt?"] },
+  },
+  {
+    ru: { name: "Дворец памяти", def: "Мнемоника: размещение образов вдоль знакомого маршрута.",
+      q: ["Почему пространственная память так сильна?", "Как запомнить список этим методом?"] },
+    en: { name: "Memory palace", def: "A mnemonic that places items along a familiar spatial route.",
+      q: ["Why is spatial memory so strong?", "How would you memorize a list with it?"] },
+  },
+  {
+    ru: { name: "Мышечная память", def: "Процедурный навык: движения идут без сознательного контроля.",
+      q: ["Какие зоны мозга задействованы?", "Почему её трудно переучить?"] },
+    en: { name: "Muscle memory", def: "Procedural skill stored so movements run without conscious thought.",
+      q: ["Which brain areas are involved?", "Why is it hard to unlearn?"] },
+  },
+  // ---- Внимание и фокус / Attention & focus ----
+  {
+    ru: { name: "Избирательное внимание", def: "Фокус на одном потоке при отсеве остального.",
+      q: ["Что за метафора прожектора?", "Что проходит сквозь фильтр?"] },
+    en: { name: "Selective attention", def: "Focusing on one stream while filtering out the rest.",
+      q: ["What is the spotlight metaphor?", "What slips through the filter?"] },
+  },
+  {
+    ru: { name: "Состояние потока", def: "Полное погружение при балансе сложности и навыка.",
+      q: ["Какие условия запускают поток?", "Как он меняет чувство времени?"] },
+    en: { name: "Flow state", def: "Full immersion where challenge and skill are balanced.",
+      q: ["What conditions trigger flow?", "How does it change time perception?"] },
+  },
+  {
+    ru: { name: "Когнитивная нагрузка", def: "Объём рабочей памяти, которого требует задача.",
+      q: ["Какие три её вида?", "Как снизить лишнюю нагрузку?"] },
+    en: { name: "Cognitive load", def: "The amount of working memory a task demands.",
+      q: ["What are its three types?", "How do you reduce extraneous load?"] },
+  },
+  {
+    ru: { name: "Эффект вечеринки", def: "Настройка на один голос в шуме — но своё имя всё равно слышно.",
+      q: ["Как мозг фильтрует голоса?", "Почему имя перехватывает внимание?"] },
+    en: { name: "The cocktail party effect", def: "Tuning into one voice in noise — yet your name still cuts through.",
+      q: ["How does the brain filter voices?", "Why does your name grab attention?"] },
+  },
+  {
+    ru: { name: "Глубокая работа", def: "Сфокусированная работа без отвлечений над сложными задачами.",
+      q: ["Что убивает глубокую работу?", "Как выделить под неё время?"] },
+    en: { name: "Deep work", def: "Focused, distraction-free work on cognitively demanding tasks.",
+      q: ["What kills deep work?", "How do you schedule for it?"] },
+  },
+  {
+    ru: { name: "Блуждание ума", def: "Уход внимания от задачи к посторонним мыслям.",
+      q: ["Какая сеть мозга за него отвечает?", "Бывает ли оно полезным?"] },
+    en: { name: "Mind-wandering", def: "Attention drifting from the task to unrelated thoughts.",
+      q: ["What network drives it?", "Is it ever useful?"] },
+  },
+  {
+    ru: { name: "Тормозящий контроль", def: "Намеренное подавление импульсов и лишних реакций.",
+      q: ["Как его проверяют (тест Струпа)?", "Как связан с самоконтролем?"] },
+    en: { name: "Inhibitory control", def: "Suppressing impulses and irrelevant responses on purpose.",
+      q: ["How is it tested (the Stroop task)?", "How does it relate to self-control?"] },
+  },
+  {
+    ru: { name: "Мигание внимания", def: "Короткий провал: вторую цель сразу после первой не замечаешь.",
+      q: ["Сколько длится «мигание»?", "Что оно говорит о внимании?"] },
+    en: { name: "Attentional blink", def: "A brief gap where you miss a second target right after the first.",
+      q: ["How long is the blink?", "What does it reveal about attention?"] },
+  },
+  // ---- Когнитивные искажения / Cognitive biases ----
+  {
+    ru: { name: "Предвзятость подтверждения", def: "Предпочтение информации, что подтверждает уже имеющееся мнение.",
+      q: ["Где оно искажает исследование?", "Как ему противостоять?"] },
+    en: { name: "Confirmation bias", def: "Favoring information that fits what you already believe.",
+      q: ["Where does it distort research?", "How can you counter it?"] },
+  },
+  {
+    ru: { name: "Эффект Даннинга — Крюгера", def: "Низкий навык вместе с завышенной уверенностью в нём.",
+      q: ["Почему новичок не видит пробелов?", "Что происходит с ростом навыка?"] },
+    en: { name: "Dunning–Kruger effect", def: "Low skill paired with overconfidence about that skill.",
+      q: ["Why can't novices see their gaps?", "What happens as skill grows?"] },
+  },
+  {
+    ru: { name: "Эффект якоря", def: "Чрезмерная опора на первое увиденное число или факт.",
+      q: ["Как его используют в переговорах?", "Можно ли устоять перед якорем?"] },
+    en: { name: "Anchoring", def: "Over-relying on the first number or fact you see.",
+      q: ["How do negotiations exploit it?", "Can you resist a bad anchor?"] },
+  },
+  {
+    ru: { name: "Эвристика доступности", def: "Оценка вероятности по лёгкости, с которой вспоминаются примеры.",
+      q: ["Почему переоцениваем редкие катастрофы?", "Как медиа его усиливают?"] },
+    en: { name: "Availability heuristic", def: "Judging likelihood by how easily examples come to mind.",
+      q: ["Why do we overrate rare disasters?", "How does media amplify it?"] },
+  },
+  {
+    ru: { name: "Когнитивный диссонанс", def: "Дискомфорт от двух противоречащих убеждений или поступков.",
+      q: ["Как мы снимаем это напряжение?", "Пример из жизни?"] },
+    en: { name: "Cognitive dissonance", def: "The discomfort of holding two conflicting beliefs or actions.",
+      q: ["How do we reduce the tension?", "Give an everyday example."] },
+  },
+  {
+    ru: { name: "Эффект формулировки", def: "Один и тот же факт влияет по-разному в зависимости от подачи.",
+      q: ["Выгода или потеря — что сильнее?", "Где его применяют для убеждения?"] },
+    en: { name: "The framing effect", def: "The same fact swaying you differently by how it's worded.",
+      q: ["Gain vs loss framing — which wins?", "Where is it used to persuade?"] },
+  },
+  {
+    ru: { name: "Ошибка выжившего", def: "Фокус на успехах при игнорировании невидимых провалов.",
+      q: ["Пример с самолётами Второй мировой?", "Как искажает советы?"] },
+    en: { name: "Survivorship bias", def: "Focusing on winners and ignoring the invisible failures.",
+      q: ["What's the WWII plane example?", "How does it mislead advice?"] },
+  },
+  {
+    ru: { name: "Ретроспективное искажение", def: "Прошлое кажется более предсказуемым, чем было на деле.",
+      q: ["Откуда «я так и знал»?", "Как мешает учиться на ошибках?"] },
+    en: { name: "Hindsight bias", def: "Seeing past events as more predictable than they really were.",
+      q: ["Why 'I knew it all along'?", "How does it hurt learning?"] },
+  },
+  {
+    ru: { name: "Неприятие потерь", def: "Потери ранят примерно вдвое сильнее, чем радуют равные выигрыши.",
+      q: ["Как влияет на риск?", "Где его используют маркетологи?"] },
+    en: { name: "Loss aversion", def: "Losses hurt about twice as much as equal gains please.",
+      q: ["How does it shape risk taking?", "Where do marketers use it?"] },
+  },
+  {
+    ru: { name: "Эффект ореола", def: "Одна хорошая черта окрашивает всё впечатление о человеке.",
+      q: ["Как внешность влияет на найм?", "Что за обратный эффект («рог»)?"] },
+    en: { name: "The halo effect", def: "One good trait coloring your whole impression of someone.",
+      q: ["How does looks bias hiring?", "What's the reverse (horn) effect?"] },
+  },
+  {
+    ru: { name: "Ошибка базовой ставки", def: "Игнорирование общей частоты при оценке частного случая.",
+      q: ["Как обманывает в медтестах?", "В чём поправка Байеса?"] },
+    en: { name: "Base rate fallacy", def: "Ignoring overall frequency when judging a specific case.",
+      q: ["How does it fool medical tests?", "What is the Bayes correction?"] },
+  },
+  {
+    ru: { name: "Ошибка невозвратных затрат", def: "Продолжать дело из-за уже вложенного, а не из-за смысла.",
+      q: ["Почему прошлые траты неважны?", "Пример реального решения?"] },
+    en: { name: "Sunk cost fallacy", def: "Continuing something because of what you've already spent.",
+      q: ["Why are past costs irrelevant?", "Give a real decision example."] },
+  },
+  // ---- Нейронаука / Neuroscience ----
+  {
+    ru: { name: "Синаптическая обрезка", def: "Удаление мозгом слабых, неиспользуемых синапсов ради эффективности.",
+      q: ["Когда достигает пика?", "Почему уместно «не используешь — теряешь»?"] },
+    en: { name: "Synaptic pruning", def: "The brain removing weak, unused synapses to become efficient.",
+      q: ["When does it peak?", "Why is 'use it or lose it' apt?"] },
+  },
+  {
+    ru: { name: "Миелинизация", def: "Покрытие аксонов миелином для ускорения нервных сигналов.",
+      q: ["Насколько быстрее идёт сигнал?", "Почему продолжается во взрослом возрасте?"] },
+    en: { name: "Myelination", def: "Insulating axons with myelin to speed up neural signals.",
+      q: ["How much faster do signals travel?", "Why does it continue into adulthood?"] },
+  },
+  {
+    ru: { name: "Сеть пассивного режима", def: "Сеть мозга, активная в покое, при мечтаниях и саморефлексии.",
+      q: ["Когда она отключается?", "Как связана с креативностью?"] },
+    en: { name: "Default mode network", def: "Brain network active during rest, daydreaming, and self-reflection.",
+      q: ["When does it switch off?", "How does it link to creativity?"] },
+  },
+  {
+    ru: { name: "Зеркальные нейроны", def: "Клетки, что активны и при действии, и при наблюдении за ним.",
+      q: ["Как связаны с эмпатией?", "Почему теория спорна?"] },
+    en: { name: "Mirror neurons", def: "Cells that fire both when you act and when you watch others act.",
+      q: ["How might they support empathy?", "Why is the theory debated?"] },
+  },
+  {
+    ru: { name: "Нейрогенез", def: "Рождение новых нейронов, в т.ч. во взрослом гиппокампе.",
+      q: ["Что его усиливает?", "Как связан с памятью?"] },
+    en: { name: "Neurogenesis", def: "The birth of new neurons, notably in the adult hippocampus.",
+      q: ["What boosts it?", "How does it relate to memory?"] },
+  },
+  {
+    ru: { name: "Дофаминовое вознаграждение", def: "Дофамин сигналит об ошибке предсказания, движет обучением и мотивацией.",
+      q: ["Награда или ожидание — что он кодирует?", "Как привычки его перехватывают?"] },
+    en: { name: "Dopamine reward", def: "Dopamine signaling prediction error, driving learning and motivation.",
+      q: ["Reward vs prediction — which does it track?", "How do habits hijack it?"] },
+  },
+  {
+    ru: { name: "Миндалевидное тело", def: "Миндалевидный центр страха, угроз и эмоциональной памяти.",
+      q: ["Что такое «захват миндалиной»?", "Как она метит воспоминания?"] },
+    en: { name: "The amygdala", def: "Almond-shaped hub for fear, threat detection, and emotional memory.",
+      q: ["What is the 'amygdala hijack'?", "How does it tag memories?"] },
+  },
+  {
+    ru: { name: "Потенциал действия", def: "Электрический импульс «всё или ничего», которым срабатывает нейрон.",
+      q: ["Какие ионы его создают?", "Почему «всё или ничего»?"] },
+    en: { name: "Action potential", def: "The all-or-nothing electrical spike that fires a neuron.",
+      q: ["What ions drive it?", "Why 'all-or-nothing'?"] },
+  },
+  {
+    ru: { name: "Латерализация мозга", def: "Смещение функций к полушарию — напр. речь слева.",
+      q: ["Где миф про «левополушарных»?", "Что делает мозолистое тело?"] },
+    en: { name: "Brain lateralization", def: "Functions leaning to one hemisphere — e.g., language on the left.",
+      q: ["What's myth vs fact about 'left-brained'?", "What does the corpus callosum do?"] },
+  },
+  {
+    ru: { name: "Глиальные клетки", def: "Не-нейронные клетки мозга: поддержка, питание, изоляция нейронов.",
+      q: ["Назови два вида и их роль?", "Почему их долго недооценивали?"] },
+    en: { name: "Glial cells", def: "Non-neuron brain cells that support, feed, and insulate neurons.",
+      q: ["Name two types and their roles.", "Why were they long underrated?"] },
+  },
+  {
+    ru: { name: "Префронтальная кора", def: "Передняя зона мозга: планирование, решения, самоконтроль.",
+      q: ["Когда она окончательно созревает?", "Что при её повреждении?"] },
+    en: { name: "Prefrontal cortex", def: "Front brain region for planning, decisions, and self-control.",
+      q: ["When does it fully mature?", "What happens when it's damaged?"] },
+  },
+  // ---- Обучение, установки, поведение / Learning, mindset, behaviour ----
+  {
+    ru: { name: "Установка на рост", def: "Вера, что способности растут от усилий, а не даны навсегда.",
+      q: ["Как похвала влияет на неё?", "В чём критика концепции?"] },
+    en: { name: "Growth mindset", def: "Belief that ability grows with effort, not fixed at birth.",
+      q: ["How does praise shape it?", "What are the critiques?"] },
+  },
+  {
+    ru: { name: "Осознанная практика", def: "Целенаправленная работа над слабыми местами с обратной связью.",
+      q: ["Чем отличается от «просто практики»?", "Почему нужна обратная связь?"] },
+    en: { name: "Deliberate practice", def: "Focused practice on weaknesses with feedback, beyond mere repetition.",
+      q: ["How does it differ from just practicing?", "Why is feedback essential?"] },
+  },
+  {
+    ru: { name: "Метапознание", def: "Мышление о собственном мышлении — знание того, что знаешь.",
+      q: ["Почему ученики путают ощущение и знание?", "Как его откалибровать?"] },
+    en: { name: "Metacognition", def: "Thinking about your own thinking — knowing what you know.",
+      q: ["Why do learners misjudge mastery?", "How do you calibrate it?"] },
+  },
+  {
+    ru: { name: "Эффект Зейгарник", def: "Незавершённые дела держатся в голове сильнее завершённых.",
+      q: ["Как помогает в учёбе?", "Почему работают клиффхэнгеры?"] },
+    en: { name: "The Zeigarnik effect", def: "Unfinished tasks stay in mind more than finished ones.",
+      q: ["How can it aid studying?", "How does it fuel cliffhangers?"] },
+  },
+  {
+    ru: { name: "Петля привычки", def: "Сигнал → действие → награда — цикл, что строит привычку.",
+      q: ["Как менять плохую привычку?", "Какова роль награды?"] },
+    en: { name: "The habit loop", def: "Cue, routine, reward — the cycle that builds habits.",
+      q: ["How do you change a bad habit?", "What role does the reward play?"] },
+  },
+  {
+    ru: { name: "Отложенное вознаграждение", def: "Отказ от малой награды сейчас ради большей потом.",
+      q: ["Что показал «зефирный тест»?", "Какая критика появилась позже?"] },
+    en: { name: "Delayed gratification", def: "Resisting a small reward now for a bigger one later.",
+      q: ["What did the marshmallow test show?", "What later critiques emerged?"] },
+  },
+  {
+    ru: { name: "Самоэффективность", def: "Вера в свою способность справиться с конкретной задачей.",
+      q: ["Каковы четыре источника по Бандуре?", "Как влияет на упорство?"] },
+    en: { name: "Self-efficacy", def: "Your belief in your ability to succeed at a specific task.",
+      q: ["What are Bandura's four sources?", "How does it affect persistence?"] },
+  },
+  {
+    ru: { name: "Модель психического", def: "Понимание, что у других свои убеждения и намерения.",
+      q: ["В каком возрасте появляется?", "Что за тест на ложное убеждение?"] },
+    en: { name: "Theory of mind", def: "Grasping that others have their own beliefs and intentions.",
+      q: ["At what age does it emerge?", "What is the false-belief test?"] },
+  },
+  // ---- Восприятие и сон / Perception & sleep ----
+  {
+    ru: { name: "Принципы гештальта", def: "Правила, по которым ум собирает части в целое.",
+      q: ["Назови три закона группировки?", "Почему «целое больше суммы»?"] },
+    en: { name: "Gestalt principles", def: "Rules by which the mind groups parts into wholes.",
+      q: ["Name three grouping laws.", "'The whole is greater' — why?"] },
+  },
+  {
+    ru: { name: "Слепота к изменениям", def: "Незамечание крупных изменений в сцене.",
+      q: ["Что за «эксперимент с дверью»?", "Что говорит о восприятии?"] },
+    en: { name: "Change blindness", def: "Failing to notice large changes in a scene.",
+      q: ["What is the door study?", "What does it say about perception?"] },
+  },
+  {
+    ru: { name: "Синестезия", def: "Одно чувство запускает другое — напр. цвет у букв.",
+      q: ["Что за графемно-цветовая синестезия?", "Врождённая или приобретённая?"] },
+    en: { name: "Synesthesia", def: "One sense triggering another — e.g., seeing colors in letters.",
+      q: ["What is grapheme-color synesthesia?", "Is it learned or innate?"] },
+  },
+  {
+    ru: { name: "Проприоцепция", def: "Чувство положения частей тела без взгляда на них.",
+      q: ["Какие рецепторы его дают?", "Что при его потере?"] },
+    en: { name: "Proprioception", def: "The sense of where your body parts are without looking.",
+      q: ["Which receptors provide it?", "What happens when it fails?"] },
+  },
+  {
+    ru: { name: "Эффект Мак-Гурка", def: "Зрение перекрывает слух — ты «слышишь» другой звук.",
+      q: ["Как устроена демонстрация?", "Что говорит о восприятии?"] },
+    en: { name: "The McGurk effect", def: "Vision overriding hearing so you 'hear' a different sound.",
+      q: ["How does the demo work?", "What does it reveal about perception?"] },
+  },
+  {
+    ru: { name: "Быстрый сон и память", def: "Стадия сна со сновидениями: закрепляет навыки и эмоции.",
+      q: ["Какую память укрепляет быстрый сон?", "Что при его нехватке?"] },
+    en: { name: "REM sleep and memory", def: "The dreaming stage that helps consolidate skills and emotion.",
+      q: ["Which memories does REM favor?", "What happens if you skip it?"] },
+  },
+  {
+    ru: { name: "Циркадный ритм", def: "Внутренние ~24-часовые часы сна и бодрости.",
+      q: ["Что настраивает эти часы?", "Как свет их сдвигает?"] },
+    en: { name: "Circadian rhythm", def: "The ~24-hour internal clock governing sleep and alertness.",
+      q: ["What sets the clock?", "How does light shift it?"] },
+  },
+];

@@ -1,65 +1,17 @@
 "use strict";
 
 /* ============================================================================
- * 15 Minutes Later — bilingual focus roulette
+ * 15 Minutes Later — bilingual focus roulette with a spaced-repetition core.
  *
- * A roulette picks a concept; you research it for 15 minutes, then present it
- * for 1 minute. Bilingual (RU / EN). See selectWinner() for the selection model
- * that replaces the original uniform Math.random() — it guarantees coverage and
- * spaces out repeats (spaced-repetition style), which is what a memory trainer
- * actually wants.
+ * Loop: spin -> research brief (concept + guiding questions) -> 15-min study ->
+ * 1-min recall aloud -> self-grade. The grade feeds an SM-2-lite scheduler that
+ * decides when the concept comes back. Progress, streak, and stats persist in
+ * localStorage. Concept data (names, definitions, questions) lives in
+ * concepts.js as CONCEPT_DATA.
  * ==========================================================================*/
 
-/* ---------------------------------------------------------------------------
- * Concepts — parallel arrays, index-aligned across languages so switching the
- * language keeps the same concept selected.
- * ------------------------------------------------------------------------- */
-const CONCEPTS = {
-  ru: [
-    "Нейропластичность", "Закон притяжения", "Синхроничность", "Эффект бабочки",
-    "Коллективное бессознательное", "Морфический резонанс", "Состояние потока",
-    "Теория хаоса", "Родовая память", "Тени эго", "Осознанность",
-    "Субъективная реальность", "Творческая энтропия", "Предвзятость подтверждения",
-    "Расширенное восприятие", "Мысленная визуализация", "Ясность ума",
-    "Подсознание", "Эмоциональный якорь", "Перепрограммирование ума",
-    "Человеческий потенциал", "Согласованность ума", "Расширенное сознание",
-    "Связь тела и разума", "Осознанное намерение", "Активная медитация",
-    "Тренированная интуиция", "Архитектура мышления", "Тонкие поля",
-    "Внутренняя алхимия", "Сакральная геометрия", "Субъективное время",
-    "Клеточная память", "Символическая судьба", "Остаточная энергия",
-    "Лиминальность", "Внутренний резонанс", "Расширенное присутствие",
-    "Осознанный эфир", "Невидимые узоры", "Значимое совпадение",
-    "Личная вибрация", "Трансмутация эмоций", "Символическое восприятие",
-    "Внутренняя тишина", "Интуитивный порог", "Внутренний магнетизм",
-    "Осознание-свидетель", "Эхо мысли", "Эмоциональная частота",
-    "Внутреннее единство", "Тонкая связь", "Осознанная тайна",
-    "Невидимый мост", "Интуитивная судьба", "Внутренний код",
-    "Ментальная конвергенция", "Шестое чувство",
-  ],
-  en: [
-    "Neuroplasticity", "Law of attraction", "Synchronicity", "Butterfly effect",
-    "Collective unconscious", "Morphic resonance", "Flow state",
-    "Chaos theory", "Ancestral memory", "Shadows of the ego", "Mindfulness",
-    "Subjective reality", "Creative entropy", "Confirmation bias",
-    "Expanded perception", "Mental visualization", "Mental clarity",
-    "Subconscious mind", "Emotional anchoring", "Mental reprogramming",
-    "Human potential", "Mental coherence", "Expanded consciousness",
-    "Mind–body connection", "Conscious intention", "Active meditation",
-    "Trained intuition", "Mental architecture", "Subtle fields",
-    "Inner alchemy", "Sacred geometry", "Subjective time",
-    "Cellular memory", "Symbolic destiny", "Residual energy",
-    "Liminality", "Inner resonance", "Expanded presence",
-    "Conscious ether", "Invisible patterns", "Meaningful coincidence",
-    "Personal vibration", "Emotional transmutation", "Symbolic perception",
-    "Mental silence", "Intuitive threshold", "Inner magnetism",
-    "Witnessing awareness", "Echo of thought", "Emotional frequency",
-    "Inner unity", "Subtle connection", "Conscious mystery",
-    "Invisible bridge", "Intuitive destiny", "Inner code",
-    "Mental convergence", "Sixth sense",
-  ],
-};
-
-const CONCEPT_COUNT = CONCEPTS.en.length;
+const N = CONCEPT_DATA.length;
+const DAY = 24 * 60 * 60 * 1000;
 
 /* ---------------------------------------------------------------------------
  * UI copy per language.
@@ -76,17 +28,33 @@ const STRINGS = {
     spinStart: "Запустить поиск",
     spinProcessing: "Обработка…",
     spinAgain: "Крутить снова",
-    progress: (seen, total) => `Изучено ${seen} из ${total}`,
-    resetProgress: "Сбросить прогресс",
+    kbdHint: "Пробел — крутить",
+    reset: "Сброс",
+    statToday: "Сегодня",
+    statStreak: "Стрик",
+    statDue: "К возврату",
+    statStudied: "Изучено",
     sessionLabel: "Выбранный концепт",
-    stage1Label: "15 минут исследования",
-    stage1Button: "Начать 15 мин",
-    stage2Label: "Презентация",
-    stage2Button: "Начать 1 мин",
-    sessionDone: "Сессия завершена",
-    finish: "Завершить",
+    briefLabel: "С чего начать",
+    studyLabel: "15 минут исследования",
+    presentLabel: "Презентация",
+    startStudy: "Начать 15 мин",
+    startPresent: "Начать 1 мин",
+    presentPrompt: "Теперь расскажи вслух по памяти — как будто объясняешь другому.",
+    paused: "На паузе",
+    timerHint: "Клик по таймеру — пауза",
     back: "← Назад",
-    credit: "Вдохновлено проектом 15-minutos-después — rubi_castelar",
+    recallTitle: "Насколько хорошо вспомнил?",
+    recallDefLabel: "Определение",
+    gradeAgain: "Не помню",
+    gradeHard: "Трудно",
+    gradeGood: "Хорошо",
+    gradeEasy: "Легко",
+    soon: "скоро",
+    interval: (days) => `через ${days} дн.`,
+    soundOnLabel: "Звук включён",
+    soundOffLabel: "Звук выключен",
+    credit: "Вдохновлено проектом 15-minutos-después",
   },
   en: {
     docTitle: "15 Minutes Later · Focus Roulette",
@@ -99,95 +67,137 @@ const STRINGS = {
     spinStart: "Start search",
     spinProcessing: "Processing…",
     spinAgain: "Spin again",
-    progress: (seen, total) => `Studied ${seen} of ${total}`,
-    resetProgress: "Reset progress",
+    kbdHint: "Space to spin",
+    reset: "Reset",
+    statToday: "Today",
+    statStreak: "Streak",
+    statDue: "Due",
+    statStudied: "Studied",
     sessionLabel: "Selected concept",
-    stage1Label: "15 minutes of research",
-    stage1Button: "Start 15 min",
-    stage2Label: "Presentation",
-    stage2Button: "Start 1 min",
-    sessionDone: "Session complete",
-    finish: "Finish",
+    briefLabel: "Where to start",
+    studyLabel: "15 minutes of research",
+    presentLabel: "Presentation",
+    startStudy: "Start 15 min",
+    startPresent: "Start 1 min",
+    presentPrompt: "Now recall it aloud from memory — as if explaining to someone.",
+    paused: "Paused",
+    timerHint: "Click the timer to pause",
     back: "← Back",
-    credit: "Inspired by 15-minutos-después by rubi_castelar",
+    recallTitle: "How well did you recall it?",
+    recallDefLabel: "Definition",
+    gradeAgain: "Blank",
+    gradeHard: "Hard",
+    gradeGood: "Good",
+    gradeEasy: "Easy",
+    soon: "soon",
+    interval: (days) => `in ${days} d`,
+    soundOnLabel: "Sound on",
+    soundOffLabel: "Sound off",
+    credit: "Inspired by 15-minutos-después",
   },
 };
 
 const TIMER_STAGES = [
-  { key: "focus", labelKey: "stage1Label", buttonKey: "stage1Button", durationSeconds: 15 * 60 },
-  { key: "cooldown", labelKey: "stage2Label", buttonKey: "stage2Button", durationSeconds: 60 },
+  { key: "study", labelKey: "studyLabel", durationSeconds: 15 * 60 },
+  { key: "present", labelKey: "presentLabel", durationSeconds: 60 },
 ];
+
+const GOAL_CYCLE = [1, 3, 5, 10];
 
 /* ---------------------------------------------------------------------------
  * DOM references.
  * ------------------------------------------------------------------------- */
+const appShell = document.querySelector(".app-shell");
+const viewIdle = document.getElementById("view-idle");
+const viewSession = document.getElementById("view-session");
+const viewRecall = document.getElementById("view-recall");
+
+const heroTagEl = document.getElementById("hero-tag");
+const heroTitleEl = document.getElementById("hero-title");
+const heroSubtitleEl = document.getElementById("hero-subtitle");
+
 const windowElement = document.getElementById("roulette-window");
-const buttonElement = document.getElementById("spin-button");
-const resultElement = document.getElementById("result-text");
-const resultLabelElement = document.getElementById("result-label");
-const resultPanelElement = document.querySelector(".result-panel");
-const progressTextElement = document.getElementById("progress-text");
-const resetProgressElement = document.getElementById("reset-progress");
-const appShellElement = document.querySelector(".app-shell");
-const heroElement = document.querySelector(".hero");
-const heroTagElement = document.getElementById("hero-tag");
-const heroTitleElement = document.getElementById("hero-title");
-const heroSubtitleElement = document.getElementById("hero-subtitle");
-const rouletteCardElement = document.querySelector(".roulette-card");
-const footerElement = document.querySelector(".site-footer");
-const creditLinkElement = document.getElementById("credit-link");
-const sessionPanelElement = document.getElementById("session-panel");
-const backButtonElement = document.getElementById("back-button");
-const sessionTagElement = document.getElementById("session-tag");
-const sessionLabelElement = document.getElementById("session-label");
-const sessionConceptElement = document.getElementById("session-concept");
-const sessionButtonElement = document.getElementById("session-button");
-const timerOrbElement = document.getElementById("timer-orb");
-const timerStageElement = document.getElementById("timer-stage");
-const timerValueElement = document.getElementById("timer-value");
+const spinButton = document.getElementById("spin-button");
+const resultText = document.getElementById("result-text");
+const resultLabelEl = document.getElementById("result-label");
+const resultPanelEl = document.querySelector(".result-panel");
+const kbdHintEl = document.getElementById("kbd-hint");
+
+const statTodayEl = document.getElementById("stat-today");
+const statTodayKeyEl = document.getElementById("stat-today-key");
+const statStreakEl = document.getElementById("stat-streak");
+const statStreakKeyEl = document.getElementById("stat-streak-key");
+const statDueEl = document.getElementById("stat-due");
+const statDueKeyEl = document.getElementById("stat-due-key");
+const statStudiedEl = document.getElementById("stat-studied");
+const statStudiedKeyEl = document.getElementById("stat-studied-key");
+const statGoalEl = document.getElementById("stat-goal");
+const resetButton = document.getElementById("reset-progress");
+
+const creditLinkEl = document.getElementById("credit-link");
+
+const backButton = document.getElementById("back-button");
+const sessionTagEl = document.getElementById("session-tag");
+const sessionLabelEl = document.getElementById("session-label");
+const sessionConceptEl = document.getElementById("session-concept");
+const briefEl = document.getElementById("session-brief");
+const briefLabelEl = document.getElementById("brief-label");
+const briefQuestionsEl = document.getElementById("brief-questions");
+const presentPromptEl = document.getElementById("present-prompt");
+const orbEl = document.getElementById("timer-orb");
+const timerStageEl = document.getElementById("timer-stage");
+const timerValueEl = document.getElementById("timer-value");
+const timerHintEl = document.getElementById("timer-hint");
+const sessionButton = document.getElementById("session-button");
+
+const recallTagEl = document.getElementById("recall-tag");
+const recallTitleEl = document.getElementById("recall-title");
+const recallConceptEl = document.getElementById("recall-concept");
+const recallDefLabelEl = document.getElementById("recall-def-label");
+const recallDefTextEl = document.getElementById("recall-def-text");
+const gradeButtons = Array.from(document.querySelectorAll(".grade-button"));
+const gradeLabelEls = Array.from(document.querySelectorAll(".grade-button .grade-label"));
+const gradeIntervalEls = Array.from(document.querySelectorAll("[data-grade-interval]"));
+
+const soundToggleEl = document.getElementById("sound-toggle");
 const langButtons = Array.from(document.querySelectorAll(".lang-button"));
 
 /* ---------------------------------------------------------------------------
- * Config / state.
+ * Config / persistence keys.
  * ------------------------------------------------------------------------- */
 const bufferItems = 2;
 const LANG_KEY = "fml.lang";
-const MODEL_KEY = "fml.model.v1";
-const MODEL_VERSION = 1;
-// How many spins until a shown concept has fully "recovered" its weight.
-const COVER_WINDOW = Math.min(CONCEPT_COUNT - 1, 14);
-// Weight multiplier for concepts never shown yet — drives full coverage first.
-const NOVELTY_BOOST = 3.5;
-const EPSILON = 0.001;
+const SOUND_KEY = "fml.sound";
+const STORE_KEY = "fml.store.v1";
+const STORE_VERSION = 1;
 
 const prefersReducedMotion =
   window.matchMedia &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/* ---------------------------------------------------------------------------
+ * Runtime state.
+ * ------------------------------------------------------------------------- */
 let lang = "ru";
 let audioContext;
+let soundEnabled = true;
 let isSpinning = false;
 let currentIndex = 0;
 let travelOffset = 0;
+let currentWinnerIndex = null;
+let lastWinnerIndex = null;
+let currentMode = "idle"; // idle | brief | studying | presentReady | presenting | recall
+let currentStageIndex = 0;
 let timerIntervalId;
 let timerDeadline = 0;
-let currentWinnerIndex = null; // index of the last landed concept (no immediate repeat)
-let currentMode = "idle";
-let currentTimerStageIndex = 0;
+let timerPaused = false;
+let remainingMsAtPause = 0;
+let currentStageDurationSeconds = 0;
 
-let model = createFreshModel();
-
-function createFreshModel() {
-  return {
-    version: MODEL_VERSION,
-    spinCounter: 0,
-    counts: new Array(CONCEPT_COUNT).fill(0),
-    lastSpin: new Array(CONCEPT_COUNT).fill(-1),
-  };
-}
+let store = freshStore();
 
 /* ---------------------------------------------------------------------------
- * Persistence helpers (fail-safe — private mode / disabled storage tolerated).
+ * Storage helpers (fail-safe).
  * ------------------------------------------------------------------------- */
 function safeGet(key) {
   try {
@@ -205,198 +215,278 @@ function safeSet(key, value) {
   }
 }
 
-function loadModel() {
-  const raw = safeGet(MODEL_KEY);
-  if (!raw) {
-    return createFreshModel();
-  }
+function freshCard() {
+  return { seen: 0, reps: 0, lapses: 0, ease: 2.5, interval: 0, due: 0, lastGrade: -1 };
+}
 
+function freshStore() {
+  return {
+    version: STORE_VERSION,
+    spinCounter: 0,
+    cards: Array.from({ length: N }, freshCard),
+    stats: {
+      goal: 3,
+      todayDate: "",
+      todayCount: 0,
+      lastStudyDate: "",
+      streak: 0,
+      totalGrades: 0,
+      goodGrades: 0,
+    },
+  };
+}
+
+function loadStore() {
+  const raw = safeGet(STORE_KEY);
+  if (!raw) {
+    return freshStore();
+  }
   try {
     const parsed = JSON.parse(raw);
     if (
       parsed &&
-      parsed.version === MODEL_VERSION &&
-      Array.isArray(parsed.counts) &&
-      Array.isArray(parsed.lastSpin) &&
-      parsed.counts.length === CONCEPT_COUNT &&
-      parsed.lastSpin.length === CONCEPT_COUNT
+      parsed.version === STORE_VERSION &&
+      Array.isArray(parsed.cards) &&
+      parsed.cards.length === N &&
+      parsed.stats
     ) {
+      const base = freshStore();
       return {
-        version: MODEL_VERSION,
+        version: STORE_VERSION,
         spinCounter: Number(parsed.spinCounter) || 0,
-        counts: parsed.counts.map((value) => Number(value) || 0),
-        lastSpin: parsed.lastSpin.map((value) => Number(value)),
+        cards: parsed.cards.map((c) => ({ ...freshCard(), ...c })),
+        stats: { ...base.stats, ...parsed.stats },
       };
     }
   } catch (error) {
-    /* fall through to fresh model */
+    /* fall through */
   }
-
-  return createFreshModel();
+  return freshStore();
 }
 
-function saveModel() {
-  safeSet(MODEL_KEY, JSON.stringify(model));
+function saveStore() {
+  safeSet(STORE_KEY, JSON.stringify(store));
 }
 
 /* ---------------------------------------------------------------------------
- * The selection model.
- *
- * The original picked winners with a flat Math.random(): every concept equally
- * likely every spin, so it repeats and clusters and never "covers the deck".
- * For a memory trainer that is the wrong incentive. This model instead scores
- * each candidate by three factors and draws proportionally to the score:
- *
- *   novelty   — concepts never shown get a strong boost, so the whole set is
- *               surfaced before anything repeats;
- *   recency   — a concept shown recently is suppressed and recovers linearly
- *               over COVER_WINDOW spins (spaced repetition);
- *   frequency — the more often a concept has been shown, the lower its weight,
- *               keeping the long-run distribution even.
- *
- * The immediately previous winner is excluded outright (never twice in a row).
- * All state persists in localStorage, so coverage survives reloads.
+ * Date helpers for streaks.
  * ------------------------------------------------------------------------- */
-function conceptWeight(index) {
-  if (index === currentWinnerIndex) {
-    return 0; // no immediate repeat
+function dateKey(ts) {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function prevDateKey(key) {
+  const [y, m, d] = key.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() - 1);
+  return dateKey(date.getTime());
+}
+
+/* ---------------------------------------------------------------------------
+ * Spaced-repetition scheduler (SM-2-lite).
+ *
+ * computeSchedule is pure: it returns the next card state for a grade without
+ * mutating anything, so the recall screen can preview each button's interval.
+ * Grades: 0 again, 1 hard, 2 good, 3 easy.
+ * ------------------------------------------------------------------------- */
+function computeSchedule(card, grade) {
+  if (grade === 0) {
+    return {
+      reps: 0,
+      lapses: card.lapses + 1,
+      ease: Math.max(1.3, card.ease - 0.2),
+      interval: 0,
+      days: 0,
+    };
   }
 
-  const count = model.counts[index];
-  const last = model.lastSpin[index];
+  let ease = card.ease;
+  if (grade === 1) ease -= 0.15;
+  if (grade === 3) ease += 0.15;
+  ease = Math.min(2.8, Math.max(1.3, ease));
 
-  const novelty = count === 0 ? NOVELTY_BOOST : 1;
-
-  let recency;
-  if (last < 0) {
-    recency = 1; // never shown — fully available
+  let days;
+  if (card.reps === 0) {
+    days = grade === 3 ? 3 : 1;
+  } else if (card.reps === 1) {
+    days = grade === 1 ? 3 : grade === 3 ? 6 : 4;
   } else {
-    const since = model.spinCounter - last;
-    recency = Math.max(0, Math.min(1, since / COVER_WINDOW));
+    const mult = grade === 1 ? 1.2 : grade === 3 ? ease * 1.3 : ease;
+    days = Math.max(1, Math.round(card.interval * mult));
   }
 
-  const frequency = 1 / (1 + count);
+  return { reps: card.reps + 1, lapses: card.lapses, ease, interval: days, days };
+}
 
-  return novelty * recency * frequency + EPSILON;
+/* ---------------------------------------------------------------------------
+ * Selection model — review-first, then new, weighted by how overdue a card is.
+ * The previous winner is excluded so nothing repeats twice in a row.
+ * ------------------------------------------------------------------------- */
+function weightedPick(list, weightFn) {
+  let total = 0;
+  const weights = list.map((i) => {
+    const w = Math.max(0.0001, weightFn(i));
+    total += w;
+    return w;
+  });
+  let ticket = Math.random() * total;
+  for (let k = 0; k < list.length; k += 1) {
+    ticket -= weights[k];
+    if (ticket <= 0) return list[k];
+  }
+  return list[list.length - 1];
 }
 
 function selectWinner() {
-  model.spinCounter += 1;
+  store.spinCounter += 1;
+  const now = Date.now();
+  const due = [];
+  const fresh = [];
 
-  const weights = new Array(CONCEPT_COUNT);
-  let total = 0;
-  for (let i = 0; i < CONCEPT_COUNT; i += 1) {
-    const weight = conceptWeight(i);
-    weights[i] = weight;
-    total += weight;
-  }
-
-  let winnerIndex;
-  if (total <= 0) {
-    // Degenerate fallback: uniform among everything but the last winner.
-    do {
-      winnerIndex = Math.floor(Math.random() * CONCEPT_COUNT);
-    } while (winnerIndex === currentWinnerIndex && CONCEPT_COUNT > 1);
-  } else {
-    let ticket = Math.random() * total;
-    winnerIndex = CONCEPT_COUNT - 1;
-    for (let i = 0; i < CONCEPT_COUNT; i += 1) {
-      ticket -= weights[i];
-      if (ticket <= 0) {
-        winnerIndex = i;
-        break;
-      }
+  for (let i = 0; i < N; i += 1) {
+    if (i === lastWinnerIndex) continue;
+    const card = store.cards[i];
+    if (card.seen) {
+      if (card.due <= now) due.push(i);
+    } else {
+      fresh.push(i);
     }
   }
 
-  model.counts[winnerIndex] += 1;
-  model.lastSpin[winnerIndex] = model.spinCounter;
-  saveModel();
+  let winner;
+  if (due.length) {
+    winner = weightedPick(due, (i) => now - store.cards[i].due + DAY * 0.05 + 1);
+  } else if (fresh.length) {
+    winner = fresh[Math.floor(Math.random() * fresh.length)];
+  } else {
+    const pool = [];
+    for (let i = 0; i < N; i += 1) {
+      if (i !== lastWinnerIndex) pool.push(i);
+    }
+    pool.sort((a, b) => store.cards[a].due - store.cards[b].due);
+    const topK = pool.slice(0, Math.min(5, pool.length));
+    winner = topK[Math.floor(Math.random() * topK.length)];
+  }
 
-  return winnerIndex;
+  if (winner === undefined) {
+    winner = Math.floor(Math.random() * N);
+  }
+
+  saveStore();
+  return winner;
 }
 
-function seenCount() {
-  return model.counts.reduce((sum, count) => sum + (count > 0 ? 1 : 0), 0);
+function gradeCurrent(grade) {
+  if (currentWinnerIndex === null) {
+    return;
+  }
+  const card = store.cards[currentWinnerIndex];
+  const sched = computeSchedule(card, grade);
+  const now = Date.now();
+
+  card.reps = sched.reps;
+  card.lapses = sched.lapses;
+  card.ease = sched.ease;
+  card.interval = sched.interval;
+  card.lastGrade = grade;
+  card.seen = 1;
+  card.due = grade === 0 ? now : now + sched.days * DAY;
+
+  recordStudy(grade);
+  saveStore();
+  goToIdle();
 }
 
-function resetModel() {
-  model = createFreshModel();
-  saveModel();
-  currentWinnerIndex = null;
-  updateProgress();
+function recordStudy(grade) {
+  const s = store.stats;
+  const today = dateKey(Date.now());
+  if (s.todayDate !== today) {
+    s.streak = s.lastStudyDate === prevDateKey(today) ? (s.streak || 0) + 1 : 1;
+    s.todayDate = today;
+    s.todayCount = 0;
+    s.lastStudyDate = today;
+  }
+  s.todayCount += 1;
+  s.totalGrades = (s.totalGrades || 0) + 1;
+  if (grade >= 2) s.goodGrades = (s.goodGrades || 0) + 1;
 }
 
 /* ---------------------------------------------------------------------------
- * i18n.
+ * Derived stats.
+ * ------------------------------------------------------------------------- */
+function seenCount() {
+  return store.cards.reduce((sum, c) => sum + (c.seen ? 1 : 0), 0);
+}
+
+function dueCount() {
+  const now = Date.now();
+  return store.cards.reduce((sum, c) => sum + (c.seen && c.due <= now ? 1 : 0), 0);
+}
+
+function displayTodayCount() {
+  const today = dateKey(Date.now());
+  return store.stats.todayDate === today ? store.stats.todayCount : 0;
+}
+
+function displayStreak() {
+  const today = dateKey(Date.now());
+  const last = store.stats.lastStudyDate;
+  if (last === today || last === prevDateKey(today)) {
+    return store.stats.streak || 0;
+  }
+  return 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * i18n helpers.
  * ------------------------------------------------------------------------- */
 function t() {
   return STRINGS[lang];
 }
 
+function conceptName(index) {
+  return CONCEPT_DATA[index][lang].name;
+}
+
 function detectInitialLang() {
   const saved = safeGet(LANG_KEY);
-  if (saved === "ru" || saved === "en") {
-    return saved;
-  }
+  if (saved === "ru" || saved === "en") return saved;
   const nav = (navigator.language || "en").toLowerCase();
   return nav.startsWith("ru") ? "ru" : "en";
 }
 
-function updateProgress() {
-  progressTextElement.textContent = t().progress(seenCount(), CONCEPT_COUNT);
-}
-
-function applyLanguage(next) {
-  lang = next;
-  safeSet(LANG_KEY, lang);
-  document.documentElement.lang = lang;
-
-  const s = t();
-  document.title = s.docTitle;
-  heroTagElement.textContent = s.heroTag;
-  heroTitleElement.innerHTML = s.heroTitle;
-  heroSubtitleElement.textContent = s.heroSubtitle;
-  resultLabelElement.textContent = s.resultLabel;
-  resetProgressElement.textContent = s.resetProgress;
-  sessionTagElement.textContent = s.heroTag;
-  sessionLabelElement.textContent = s.sessionLabel;
-  backButtonElement.textContent = s.back;
-  backButtonElement.setAttribute("aria-label", s.back.replace(/^[←\s]+/, ""));
-  creditLinkElement.textContent = s.credit;
-
-  langButtons.forEach((btn) => {
-    const active = btn.dataset.lang === lang;
-    btn.classList.toggle("is-active", active);
-    btn.setAttribute("aria-pressed", String(active));
-  });
-
-  // Re-render language-dependent content in whatever state we are in.
-  updateProgress();
-
-  if (currentWinnerIndex !== null && currentMode === "idle") {
-    resultElement.textContent = CONCEPTS[lang][currentWinnerIndex];
-  } else if (currentMode === "idle" && !isSpinning) {
-    resultElement.textContent = s.resultIdle;
-  }
-
-  if (currentMode !== "idle" && currentWinnerIndex !== null) {
-    sessionConceptElement.textContent = CONCEPTS[lang][currentWinnerIndex];
-  }
-
-  // Spin button label.
-  if (!isSpinning) {
-    buttonElement.textContent =
-      currentWinnerIndex !== null ? s.spinAgain : s.spinStart;
-  }
-
-  syncTimerStageUi();
-  renderRoulette(currentMode !== "idle" ? currentWinnerIndex : null);
-}
-
 /* ---------------------------------------------------------------------------
- * Roulette rendering.
+ * Rendering.
  * ------------------------------------------------------------------------- */
+function renderStats() {
+  const goal = store.stats.goal || 3;
+  statTodayEl.textContent = `${displayTodayCount()}/${goal}`;
+  statStreakEl.textContent = String(displayStreak());
+  statDueEl.textContent = String(dueCount());
+  statStudiedEl.textContent = `${seenCount()}/${N}`;
+  statGoalEl.classList.toggle("is-hit", displayTodayCount() >= goal && displayTodayCount() > 0);
+}
+
+function renderBrief(index) {
+  briefLabelEl.textContent = t().briefLabel;
+  briefQuestionsEl.innerHTML = "";
+  CONCEPT_DATA[index][lang].q.forEach((question) => {
+    const li = document.createElement("li");
+    li.textContent = question;
+    briefQuestionsEl.appendChild(li);
+  });
+}
+
+function renderGradePreviews(index) {
+  const card = store.cards[index];
+  gradeIntervalEls.forEach((el) => {
+    const grade = Number(el.dataset.gradeInterval);
+    const sched = computeSchedule(card, grade);
+    el.textContent = sched.days > 0 ? t().interval(sched.days) : t().soon;
+  });
+}
+
 function modulo(value, length) {
   return ((value % length) + length) % length;
 }
@@ -405,7 +495,6 @@ function getUiMetrics() {
   const styles = getComputedStyle(document.documentElement);
   const visibleItems = Number.parseInt(styles.getPropertyValue("--visible-items"), 10);
   const itemHeight = Number.parseInt(styles.getPropertyValue("--item-height"), 10);
-
   return {
     visibleItems,
     itemHeight,
@@ -416,16 +505,12 @@ function getUiMetrics() {
 
 function getDisplayedWord(slotIndex) {
   const { focusIndex } = getUiMetrics();
-  const conceptIndex = modulo(
-    currentIndex + (slotIndex - focusIndex - bufferItems),
-    CONCEPT_COUNT,
-  );
-  return CONCEPTS[lang][conceptIndex];
+  const conceptIndex = modulo(currentIndex + (slotIndex - focusIndex - bufferItems), N);
+  return conceptName(conceptIndex);
 }
 
 function renderRoulette(winnerIndex = null) {
   const { focusIndex, itemHeight, renderCount } = getUiMetrics();
-
   windowElement.innerHTML = "";
   windowElement.style.transform = `translateY(${travelOffset - bufferItems * itemHeight}px)`;
 
@@ -434,50 +519,38 @@ function renderRoulette(winnerIndex = null) {
     const item = document.createElement("div");
     item.className = "roulette-item";
     item.textContent = word;
-
     if (slotIndex === focusIndex + bufferItems) {
       item.classList.add("is-focused");
-      if (winnerIndex !== null && word === CONCEPTS[lang][winnerIndex]) {
+      if (winnerIndex !== null && word === conceptName(winnerIndex)) {
         item.classList.add("is-winning");
       }
     }
-
     windowElement.appendChild(item);
   }
 }
 
 /* ---------------------------------------------------------------------------
- * Audio feedback.
+ * Audio.
  * ------------------------------------------------------------------------- */
 function ensureAudio() {
   const AudioCtor = window.AudioContext || window.webkitAudioContext;
-  if (!AudioCtor) {
-    return;
-  }
-  if (!audioContext) {
-    audioContext = new AudioCtor();
-  }
-  if (audioContext.state === "suspended") {
-    audioContext.resume();
-  }
+  if (!AudioCtor) return;
+  if (!audioContext) audioContext = new AudioCtor();
+  if (audioContext.state === "suspended") audioContext.resume();
 }
 
 function playTick(intensity = 1) {
-  if (!audioContext) {
-    return;
-  }
+  if (!soundEnabled || !audioContext) return;
   const now = audioContext.currentTime;
   const oscillator = audioContext.createOscillator();
   const gain = audioContext.createGain();
   const clamped = Math.max(0.32, Math.min(intensity, 1));
-
   oscillator.type = "triangle";
   oscillator.frequency.setValueAtTime(920 - 280 * (1 - clamped), now);
   oscillator.frequency.exponentialRampToValueAtTime(520, now + 0.038);
   gain.gain.setValueAtTime(0.001, now);
   gain.gain.exponentialRampToValueAtTime(0.05 * clamped, now + 0.006);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
-
   oscillator.connect(gain);
   gain.connect(audioContext.destination);
   oscillator.start(now);
@@ -485,13 +558,10 @@ function playTick(intensity = 1) {
 }
 
 function playWinTone() {
-  if (!audioContext) {
-    return;
-  }
+  if (!soundEnabled || !audioContext) return;
   const now = audioContext.currentTime;
   const oscillator = audioContext.createOscillator();
   const gain = audioContext.createGain();
-
   oscillator.type = "sine";
   oscillator.frequency.setValueAtTime(440, now);
   oscillator.frequency.linearRampToValueAtTime(660, now + 0.12);
@@ -499,7 +569,6 @@ function playWinTone() {
   gain.gain.setValueAtTime(0.001, now);
   gain.gain.exponentialRampToValueAtTime(0.09, now + 0.02);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-
   oscillator.connect(gain);
   gain.connect(audioContext.destination);
   oscillator.start(now);
@@ -507,7 +576,7 @@ function playWinTone() {
 }
 
 /* ---------------------------------------------------------------------------
- * Timer / session.
+ * Timer.
  * ------------------------------------------------------------------------- */
 function formatTime(totalSeconds) {
   const minutes = Math.floor(totalSeconds / 60);
@@ -516,26 +585,19 @@ function formatTime(totalSeconds) {
 }
 
 function updateTimerDisplay(totalSeconds) {
-  timerValueElement.textContent = formatTime(totalSeconds);
+  timerValueEl.textContent = formatTime(totalSeconds);
 }
 
 function updateTimerProgress(progress) {
-  timerOrbElement.style.setProperty("--timer-progress", String(progress));
+  orbEl.style.setProperty("--timer-progress", String(progress));
 }
 
-function getCurrentTimerStage() {
-  return TIMER_STAGES[currentTimerStageIndex];
-}
-
-function syncTimerStageUi() {
-  const stage = getCurrentTimerStage();
-  if (!stage) {
-    return;
-  }
-  timerStageElement.textContent = t()[stage.labelKey];
-  sessionButtonElement.textContent = t()[stage.buttonKey];
+function prepOrb(stageIndex) {
+  const stage = TIMER_STAGES[stageIndex];
   updateTimerDisplay(stage.durationSeconds);
   updateTimerProgress(1);
+  timerStageEl.textContent = t()[stage.labelKey];
+  orbEl.classList.remove("is-running", "is-finished", "is-paused");
 }
 
 function stopTimer() {
@@ -545,108 +607,141 @@ function stopTimer() {
   }
 }
 
-function setSessionMode(mode) {
-  currentMode = mode;
-  const sessionVisible = mode !== "idle";
-  appShellElement.classList.toggle("is-idle", mode === "idle");
-  appShellElement.classList.toggle("is-session", mode !== "idle");
-
-  heroElement.hidden = sessionVisible;
-  rouletteCardElement.hidden = sessionVisible;
-  footerElement.hidden = sessionVisible;
-  sessionPanelElement.hidden = !sessionVisible;
-  sessionPanelElement.setAttribute("aria-hidden", String(!sessionVisible));
-
-  if (!sessionVisible) {
-    sessionPanelElement.classList.remove("is-visible");
-    return;
-  }
-
-  requestAnimationFrame(() => {
-    sessionPanelElement.classList.add("is-visible");
-  });
-}
-
-function enterSessionMode(winnerIndex) {
-  currentTimerStageIndex = 0;
-  sessionConceptElement.textContent = CONCEPTS[lang][winnerIndex];
-  timerOrbElement.classList.remove("is-running", "is-finished");
-  sessionButtonElement.hidden = false;
-  sessionButtonElement.disabled = false;
-  syncTimerStageUi();
-  setSessionMode("ready");
-}
-
-function startTimer() {
-  const stage = getCurrentTimerStage();
-  if (!stage) {
-    return;
-  }
-
-  const durationSeconds = stage.durationSeconds;
+function startStage(stageIndex) {
+  currentStageIndex = stageIndex;
+  const stage = TIMER_STAGES[stageIndex];
+  currentStageDurationSeconds = stage.durationSeconds;
+  timerPaused = false;
   stopTimer();
-  timerDeadline = Date.now() + durationSeconds * 1000;
-  updateTimerDisplay(durationSeconds);
+  timerDeadline = Date.now() + currentStageDurationSeconds * 1000;
+  updateTimerDisplay(currentStageDurationSeconds);
   updateTimerProgress(1);
-  timerOrbElement.classList.remove("is-finished");
-  timerOrbElement.classList.add("is-running");
-  sessionButtonElement.hidden = true;
-  setSessionMode("running");
+  timerStageEl.textContent = t()[stage.labelKey];
+  orbEl.classList.remove("is-finished", "is-paused");
+  orbEl.classList.add("is-running");
+  setMode(stageIndex === 0 ? "studying" : "presenting");
+  timerIntervalId = window.setInterval(timerTick, 250);
+}
 
-  timerIntervalId = window.setInterval(() => {
-    const remainingSeconds = Math.max(0, Math.ceil((timerDeadline - Date.now()) / 1000));
-    const progress = remainingSeconds / durationSeconds;
+function timerTick() {
+  const remaining = Math.max(0, Math.ceil((timerDeadline - Date.now()) / 1000));
+  updateTimerDisplay(remaining);
+  updateTimerProgress(currentStageDurationSeconds ? remaining / currentStageDurationSeconds : 0);
+  if (remaining > 0) return;
 
-    updateTimerDisplay(remainingSeconds);
-    updateTimerProgress(progress);
+  stopTimer();
+  orbEl.classList.remove("is-running");
+  playWinTone();
 
-    if (remainingSeconds > 0) {
-      return;
-    }
+  if (currentStageIndex === 0) {
+    enterPresentReady();
+  } else {
+    enterRecall();
+  }
+}
 
-    stopTimer();
-    timerOrbElement.classList.remove("is-running");
-    sessionButtonElement.hidden = false;
-    sessionButtonElement.disabled = false;
+function pauseTimer() {
+  if (!(currentMode === "studying" || currentMode === "presenting") || timerPaused) return;
+  timerPaused = true;
+  stopTimer();
+  remainingMsAtPause = Math.max(0, timerDeadline - Date.now());
+  orbEl.classList.add("is-paused");
+  timerStageEl.textContent = t().paused;
+}
 
-    if (currentTimerStageIndex < TIMER_STAGES.length - 1) {
-      currentTimerStageIndex += 1;
-      syncTimerStageUi();
-      setSessionMode("ready");
-      return;
-    }
+function resumeTimer() {
+  if (!timerPaused) return;
+  timerPaused = false;
+  timerDeadline = Date.now() + remainingMsAtPause;
+  orbEl.classList.remove("is-paused");
+  timerStageEl.textContent = t()[TIMER_STAGES[currentStageIndex].labelKey];
+  timerIntervalId = window.setInterval(timerTick, 250);
+}
 
-    timerOrbElement.classList.add("is-finished");
-    timerStageElement.textContent = t().sessionDone;
-    sessionButtonElement.textContent = t().finish;
-    setSessionMode("finished");
-  }, 250);
+function toggleTimerPause() {
+  if (!(currentMode === "studying" || currentMode === "presenting")) return;
+  if (timerPaused) resumeTimer();
+  else pauseTimer();
 }
 
 /* ---------------------------------------------------------------------------
- * Spin flow.
+ * View / mode machine.
  * ------------------------------------------------------------------------- */
-function resetToInitialState() {
-  stopTimer();
-  travelOffset = 0;
-  timerDeadline = 0;
-  currentTimerStageIndex = 0;
-  resultElement.textContent = t().resultIdle;
-  timerOrbElement.classList.remove("is-running", "is-finished");
-  sessionButtonElement.hidden = false;
-  sessionButtonElement.disabled = false;
-  syncTimerStageUi();
-  buttonElement.disabled = false;
-  buttonElement.textContent =
-    currentWinnerIndex !== null ? t().spinAgain : t().spinStart;
-  sessionPanelElement.classList.remove("is-visible");
-  setSessionMode("idle");
-  renderRoulette();
+function applySessionSubview(mode) {
+  const showBrief = mode === "brief";
+  const showPresentPrompt = mode === "presentReady";
+  const showOrb = mode === "studying" || mode === "presenting" || mode === "presentReady";
+  const running = mode === "studying" || mode === "presenting";
+  briefEl.hidden = !showBrief;
+  presentPromptEl.hidden = !showPresentPrompt;
+  orbEl.hidden = !showOrb;
+  timerHintEl.hidden = !running;
+  sessionButton.hidden = running;
 }
 
+function setMode(mode) {
+  currentMode = mode;
+  const isIdle = mode === "idle";
+  const isRecall = mode === "recall";
+  const isSession = !isIdle && !isRecall;
+
+  viewIdle.hidden = !isIdle;
+  viewSession.hidden = !isSession;
+  viewRecall.hidden = !isRecall;
+  appShell.dataset.mode = mode;
+
+  if (isSession) applySessionSubview(mode);
+}
+
+/* ---------------------------------------------------------------------------
+ * Session flow.
+ * ------------------------------------------------------------------------- */
+function enterBrief(index) {
+  currentStageIndex = 0;
+  sessionConceptEl.textContent = conceptName(index);
+  renderBrief(index);
+  prepOrb(0);
+  sessionButton.textContent = t().startStudy;
+  sessionButton.disabled = false;
+  setMode("brief");
+}
+
+function enterPresentReady() {
+  currentStageIndex = 1;
+  prepOrb(1);
+  presentPromptEl.textContent = t().presentPrompt;
+  sessionButton.textContent = t().startPresent;
+  sessionButton.disabled = false;
+  setMode("presentReady");
+}
+
+function enterRecall() {
+  const index = currentWinnerIndex;
+  recallConceptEl.textContent = conceptName(index);
+  recallDefTextEl.textContent = CONCEPT_DATA[index][lang].def;
+  renderGradePreviews(index);
+  setMode("recall");
+}
+
+function goToIdle() {
+  stopTimer();
+  timerPaused = false;
+  orbEl.classList.remove("is-running", "is-finished", "is-paused");
+  resultText.textContent =
+    currentWinnerIndex !== null ? conceptName(currentWinnerIndex) : t().resultIdle;
+  spinButton.disabled = false;
+  spinButton.textContent = currentWinnerIndex !== null ? t().spinAgain : t().spinStart;
+  renderStats();
+  renderRoulette();
+  setMode("idle");
+}
+
+/* ---------------------------------------------------------------------------
+ * Spin.
+ * ------------------------------------------------------------------------- */
 function advanceSteps(stepCount, progressRatio) {
   for (let step = 0; step < stepCount; step += 1) {
-    currentIndex = modulo(currentIndex - 1, CONCEPT_COUNT);
+    currentIndex = modulo(currentIndex - 1, N);
     playTick(1 - progressRatio * 0.45);
   }
 }
@@ -657,37 +752,34 @@ function finishSpin(winnerIndex) {
   currentWinnerIndex = winnerIndex;
 
   renderRoulette(winnerIndex);
-  resultElement.textContent = CONCEPTS[lang][winnerIndex];
-  resultPanelElement.classList.remove("is-winning");
-  void resultPanelElement.offsetWidth;
-  resultPanelElement.classList.add("is-winning");
+  resultText.textContent = conceptName(winnerIndex);
+  resultPanelEl.classList.remove("is-winning");
+  void resultPanelEl.offsetWidth;
+  resultPanelEl.classList.add("is-winning");
 
   playWinTone();
-  updateProgress();
-  enterSessionMode(winnerIndex);
-  buttonElement.disabled = false;
-  buttonElement.textContent = t().spinAgain;
   isSpinning = false;
+  spinButton.disabled = false;
+  spinButton.textContent = t().spinAgain;
+  enterBrief(winnerIndex);
 }
 
 function spin() {
-  if (isSpinning) {
-    return;
-  }
+  if (isSpinning) return;
 
   ensureAudio();
   isSpinning = true;
-  buttonElement.disabled = true;
-  buttonElement.textContent = t().spinProcessing;
-  resultElement.textContent = t().resultExploring;
+  spinButton.disabled = true;
+  spinButton.textContent = t().spinProcessing;
+  resultText.textContent = t().resultExploring;
 
+  lastWinnerIndex = currentWinnerIndex;
   const { itemHeight } = getUiMetrics();
   const winnerIndex = selectWinner();
   const startIndex = currentIndex;
-  const downwardDistance = modulo(startIndex - winnerIndex, CONCEPT_COUNT);
-  // Fewer full turns and a shorter ride when the user prefers reduced motion.
+  const downwardDistance = modulo(startIndex - winnerIndex, N);
   const loops = prefersReducedMotion ? 1 : 3;
-  const totalSteps = CONCEPT_COUNT * loops + downwardDistance;
+  const totalSteps = N * loops + downwardDistance;
   const totalDistance = totalSteps * itemHeight;
   const duration = prefersReducedMotion ? 900 : 4600;
   const start = performance.now();
@@ -711,7 +803,6 @@ function spin() {
       requestAnimationFrame(animate);
       return;
     }
-
     finishSpin(winnerIndex);
   }
 
@@ -719,17 +810,96 @@ function spin() {
 }
 
 /* ---------------------------------------------------------------------------
+ * Language application.
+ * ------------------------------------------------------------------------- */
+function updateSoundToggleUi() {
+  soundToggleEl.textContent = soundEnabled ? "🔊" : "🔇";
+  soundToggleEl.setAttribute("aria-pressed", String(soundEnabled));
+  soundToggleEl.setAttribute("aria-label", soundEnabled ? t().soundOnLabel : t().soundOffLabel);
+}
+
+function applyLanguage(next) {
+  lang = next;
+  safeSet(LANG_KEY, lang);
+  document.documentElement.lang = lang;
+  const s = t();
+
+  document.title = s.docTitle;
+  heroTagEl.textContent = s.heroTag;
+  heroTitleEl.innerHTML = s.heroTitle;
+  heroSubtitleEl.textContent = s.heroSubtitle;
+  resultLabelEl.textContent = s.resultLabel;
+  kbdHintEl.textContent = s.kbdHint;
+  resetButton.textContent = s.reset;
+
+  statTodayKeyEl.textContent = s.statToday;
+  statStreakKeyEl.textContent = s.statStreak;
+  statDueKeyEl.textContent = s.statDue;
+  statStudiedKeyEl.textContent = s.statStudied;
+
+  sessionTagEl.textContent = s.heroTag;
+  sessionLabelEl.textContent = s.sessionLabel;
+  backButton.textContent = s.back;
+  backButton.setAttribute("aria-label", s.back.replace(/^[←\s]+/, ""));
+  presentPromptEl.textContent = s.presentPrompt;
+  timerHintEl.textContent = s.timerHint;
+
+  recallTagEl.textContent = s.heroTag;
+  recallTitleEl.textContent = s.recallTitle;
+  recallDefLabelEl.textContent = s.recallDefLabel;
+  gradeLabelEls[0].textContent = s.gradeAgain;
+  gradeLabelEls[1].textContent = s.gradeHard;
+  gradeLabelEls[2].textContent = s.gradeGood;
+  gradeLabelEls[3].textContent = s.gradeEasy;
+
+  creditLinkEl.textContent = s.credit;
+
+  langButtons.forEach((btn) => {
+    const active = btn.dataset.lang === lang;
+    btn.classList.toggle("is-active", active);
+    btn.setAttribute("aria-pressed", String(active));
+  });
+  updateSoundToggleUi();
+
+  // Re-render language-dependent, state-aware content.
+  renderStats();
+
+  if (currentWinnerIndex !== null) {
+    sessionConceptEl.textContent = conceptName(currentWinnerIndex);
+    recallConceptEl.textContent = conceptName(currentWinnerIndex);
+    recallDefTextEl.textContent = CONCEPT_DATA[currentWinnerIndex][lang].def;
+    renderBrief(currentWinnerIndex);
+    renderGradePreviews(currentWinnerIndex);
+  }
+
+  if (!isSpinning) {
+    if (currentMode === "idle") {
+      resultText.textContent =
+        currentWinnerIndex !== null ? conceptName(currentWinnerIndex) : s.resultIdle;
+      spinButton.textContent = currentWinnerIndex !== null ? s.spinAgain : s.spinStart;
+    }
+  }
+
+  // Session button label reflects the current stage when not running.
+  if (currentMode === "brief") sessionButton.textContent = s.startStudy;
+  if (currentMode === "presentReady") sessionButton.textContent = s.startPresent;
+  if (!timerPaused && (currentMode === "studying" || currentMode === "presenting")) {
+    timerStageEl.textContent = s[TIMER_STAGES[currentStageIndex].labelKey];
+  }
+
+  renderRoulette(currentMode !== "idle" ? currentWinnerIndex : null);
+}
+
+/* ---------------------------------------------------------------------------
  * Events.
  * ------------------------------------------------------------------------- */
 function shouldIgnoreSpaceTrigger(target) {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-  const interactiveSelector = [
+  if (!(target instanceof HTMLElement)) return false;
+  const selector = [
     "button", "input", "textarea", "select", "a",
     '[role="button"]', '[contenteditable="true"]',
   ].join(", ");
-  return Boolean(target.closest(interactiveSelector));
+  return Boolean(target.closest(selector));
 }
 
 window.addEventListener("resize", () => {
@@ -740,42 +910,54 @@ window.addEventListener("resize", () => {
 });
 
 window.addEventListener("keydown", (event) => {
-  if (event.code !== "Space" || shouldIgnoreSpaceTrigger(event.target)) {
-    return;
-  }
+  if (event.code !== "Space" || shouldIgnoreSpaceTrigger(event.target)) return;
   event.preventDefault();
-  if (currentMode === "ready") {
-    startTimer();
-    return;
-  }
-  if (currentMode === "finished") {
-    resetToInitialState();
-    return;
-  }
   if (currentMode === "idle") {
     spin();
+  } else if (currentMode === "brief") {
+    startStage(0);
+  } else if (currentMode === "presentReady") {
+    startStage(1);
+  } else if (currentMode === "studying" || currentMode === "presenting") {
+    toggleTimerPause();
   }
 });
 
-sessionButtonElement.addEventListener("click", () => {
-  if (currentMode === "ready") {
-    startTimer();
-    return;
-  }
-  if (currentMode === "finished") {
-    resetToInitialState();
-  }
+spinButton.addEventListener("click", spin);
+
+sessionButton.addEventListener("click", () => {
+  if (currentMode === "brief") startStage(0);
+  else if (currentMode === "presentReady") startStage(1);
 });
 
-backButtonElement.addEventListener("click", resetToInitialState);
-buttonElement.addEventListener("click", spin);
+orbEl.addEventListener("click", toggleTimerPause);
+backButton.addEventListener("click", goToIdle);
 
-resetProgressElement.addEventListener("click", () => {
-  resetModel();
-  if (currentMode === "idle" && !isSpinning) {
-    resultElement.textContent = t().resultIdle;
-    buttonElement.textContent = t().spinStart;
-  }
+gradeButtons.forEach((btn) => {
+  btn.addEventListener("click", () => gradeCurrent(Number(btn.dataset.grade)));
+});
+
+resetButton.addEventListener("click", () => {
+  store = freshStore();
+  saveStore();
+  currentWinnerIndex = null;
+  lastWinnerIndex = null;
+  goToIdle();
+});
+
+statGoalEl.addEventListener("click", () => {
+  const current = store.stats.goal || 3;
+  const idx = GOAL_CYCLE.indexOf(current);
+  store.stats.goal = GOAL_CYCLE[(idx + 1) % GOAL_CYCLE.length];
+  saveStore();
+  renderStats();
+});
+
+soundToggleEl.addEventListener("click", () => {
+  soundEnabled = !soundEnabled;
+  safeSet(SOUND_KEY, soundEnabled ? "on" : "off");
+  if (soundEnabled) ensureAudio();
+  updateSoundToggleUi();
 });
 
 langButtons.forEach((btn) => {
@@ -785,9 +967,19 @@ langButtons.forEach((btn) => {
 /* ---------------------------------------------------------------------------
  * Boot.
  * ------------------------------------------------------------------------- */
-model = loadModel();
+store = loadStore();
 lang = detectInitialLang();
+soundEnabled = safeGet(SOUND_KEY) !== "off";
 applyLanguage(lang);
-setSessionMode("idle");
-resultElement.textContent = t().resultIdle;
-buttonElement.textContent = t().spinStart;
+goToIdle();
+resultText.textContent = currentWinnerIndex !== null ? conceptName(currentWinnerIndex) : t().resultIdle;
+
+if (location.search.indexOf("debug") !== -1) {
+  window.__fml = {
+    get store() { return store; },
+    get mode() { return currentMode; },
+    get winner() { return currentWinnerIndex; },
+    spin, startStage, enterRecall, gradeCurrent, selectWinner, computeSchedule,
+    expireTimer() { timerDeadline = Date.now() - 1; timerTick(); },
+  };
+}

@@ -6,7 +6,7 @@
     <title>15 Minutes Later · Focus Roulette</title>
     <meta
       name="description"
-      content="Рулетка выбирает случайный концепт — у тебя 15 минут, чтобы в нём разобраться. Тренажёр памяти и концентрации. / A roulette picks a random concept — you get 15 minutes to explore it."
+      content="Рулетка выбирает концепт — 15 минут разбираешь, минуту рассказываешь, оцениваешь память. Тренажёр с интервальным повторением. / A roulette picks a concept — research 15 min, recall, and the system schedules the next review."
     />
     <link
       rel="icon"
@@ -18,61 +18,96 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=2026-08-07" />
+    <link rel="stylesheet" href="./styles.css?v=2026-08-07b" />
   </head>
   <body>
     <div class="ambient ambient-left"></div>
     <div class="ambient ambient-right"></div>
 
     <header class="top-bar">
+      <button
+        type="button"
+        class="icon-button"
+        id="sound-toggle"
+        aria-label="Sound"
+        aria-pressed="true"
+      >
+        🔊
+      </button>
       <div class="lang-switch" role="group" aria-label="Language">
         <button type="button" class="lang-button" data-lang="ru">RU</button>
         <button type="button" class="lang-button" data-lang="en">EN</button>
       </div>
     </header>
 
-    <main class="app-shell">
-      <section class="hero">
-        <p class="persistent-tag" id="hero-tag">#15минутспустя</p>
-        <h1 id="hero-title">
-          Тренируй память, концентрацию<br />
-          и нейронные связи.
-        </h1>
-        <p class="hero-subtitle" id="hero-subtitle">
-          Рулетка выбирает концепт — у тебя 15 минут, чтобы в нём разобраться.
-        </p>
-      </section>
+    <main class="app-shell" data-mode="idle">
+      <!-- ============ IDLE ============ -->
+      <div class="view view-idle" id="view-idle">
+        <section class="hero">
+          <p class="persistent-tag" id="hero-tag">#15минутспустя</p>
+          <h1 id="hero-title">
+            Тренируй память, концентрацию<br />
+            и нейронные связи.
+          </h1>
+          <p class="hero-subtitle" id="hero-subtitle">
+            Рулетка выбирает концепт — у тебя 15 минут, чтобы в нём разобраться.
+          </p>
+        </section>
 
-      <section class="roulette-card">
-        <div class="roulette-frame">
-          <div class="focus-band"></div>
-          <div class="roulette-window" id="roulette-window"></div>
-        </div>
+        <section class="roulette-card">
+          <div class="roulette-frame">
+            <div class="focus-band"></div>
+            <div class="roulette-window" id="roulette-window"></div>
+          </div>
 
-        <div class="result-panel">
-          <span class="result-label" id="result-label">Итоговый выбор</span>
-          <strong id="result-text">Ожидание запуска</strong>
-        </div>
+          <div class="result-panel">
+            <span class="result-label" id="result-label">Итоговый выбор</span>
+            <strong id="result-text">Ожидание запуска</strong>
+          </div>
 
-        <button id="spin-button" class="spin-button" type="button">
-          Запустить поиск
-        </button>
-
-        <div class="progress-row">
-          <span class="progress-text" id="progress-text">Изучено 0 из 58</span>
-          <button type="button" class="ghost-button" id="reset-progress">
-            Сбросить прогресс
+          <button id="spin-button" class="spin-button" type="button">
+            Запустить поиск
           </button>
-        </div>
-      </section>
+          <p class="kbd-hint" id="kbd-hint">Пробел — крутить</p>
+        </section>
 
-      <section
-        class="session-panel"
-        id="session-panel"
-        aria-live="polite"
-        aria-hidden="true"
-        hidden
-      >
+        <section class="stats-bar" id="stats-bar">
+          <button type="button" class="stat stat-goal" id="stat-goal" title="Сменить дневную цель">
+            <span class="stat-value" id="stat-today">0/3</span>
+            <span class="stat-key" id="stat-today-key">Сегодня</span>
+          </button>
+          <div class="stat">
+            <span class="stat-value" id="stat-streak">0</span>
+            <span class="stat-key" id="stat-streak-key">Стрик</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="stat-due">0</span>
+            <span class="stat-key" id="stat-due-key">К возврату</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="stat-studied">0/58</span>
+            <span class="stat-key" id="stat-studied-key">Изучено</span>
+          </div>
+          <button type="button" class="ghost-button stat-reset" id="reset-progress">
+            Сброс
+          </button>
+        </section>
+
+        <footer class="site-footer">
+          <a
+            class="credit-link"
+            id="credit-link"
+            href="https://rubencastelar.github.io/15-minutos-despues/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Вдохновлено проектом 15-minutos-después
+          </a>
+        </footer>
+      </div>
+
+      <!-- ============ SESSION ============ -->
+      <div class="view view-session" id="view-session" aria-live="polite" hidden>
         <button
           class="back-button"
           id="back-button"
@@ -85,12 +120,23 @@
         <p class="session-label" id="session-label">Выбранный концепт</p>
         <h2 class="session-concept" id="session-concept">Нейропластичность</h2>
 
-        <div class="timer-orb" id="timer-orb" style="--timer-progress: 1;">
+        <div class="brief" id="session-brief">
+          <p class="brief-label" id="brief-label">С чего начать</p>
+          <ul class="brief-questions" id="brief-questions"></ul>
+        </div>
+
+        <p class="present-prompt" id="present-prompt" hidden>
+          Теперь расскажи вслух по памяти — как будто объясняешь другому.
+        </p>
+
+        <div class="timer-orb" id="timer-orb" style="--timer-progress: 1;" hidden>
           <div class="timer-orb-inner">
             <span class="timer-label" id="timer-stage">15 минут исследования</span>
             <strong class="timer-value" id="timer-value">15:00</strong>
           </div>
         </div>
+
+        <p class="timer-hint" id="timer-hint" hidden>Клик по таймеру — пауза</p>
 
         <button
           id="session-button"
@@ -99,21 +145,41 @@
         >
           Начать 15 мин
         </button>
-      </section>
+      </div>
 
-      <footer class="site-footer">
-        <a
-          class="credit-link"
-          id="credit-link"
-          href="https://rubencastelar.github.io/15-minutos-despues/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Вдохновлено проектом 15-minutos-después — rubi_castelar
-        </a>
-      </footer>
+      <!-- ============ RECALL / GRADE ============ -->
+      <div class="view view-recall" id="view-recall" hidden>
+        <p class="persistent-tag" id="recall-tag">#15минутспустя</p>
+        <p class="recall-title" id="recall-title">Насколько хорошо вспомнил?</p>
+        <h2 class="session-concept" id="recall-concept">Нейропластичность</h2>
+
+        <div class="recall-def">
+          <span class="recall-def-label" id="recall-def-label">Определение</span>
+          <p class="recall-def-text" id="recall-def-text"></p>
+        </div>
+
+        <div class="grade-grid" id="grade-grid">
+          <button type="button" class="grade-button grade-again" data-grade="0">
+            <span class="grade-label">Не помню</span>
+            <span class="grade-interval" data-grade-interval="0"></span>
+          </button>
+          <button type="button" class="grade-button grade-hard" data-grade="1">
+            <span class="grade-label">Трудно</span>
+            <span class="grade-interval" data-grade-interval="1"></span>
+          </button>
+          <button type="button" class="grade-button grade-good" data-grade="2">
+            <span class="grade-label">Хорошо</span>
+            <span class="grade-interval" data-grade-interval="2"></span>
+          </button>
+          <button type="button" class="grade-button grade-easy" data-grade="3">
+            <span class="grade-label">Легко</span>
+            <span class="grade-interval" data-grade-interval="3"></span>
+          </button>
+        </div>
+      </div>
     </main>
 
-    <script src="./app.js?v=2026-08-07"></script>
+    <script src="./concepts.js?v=2026-08-07b"></script>
+    <script src="./app.js?v=2026-08-07b"></script>
   </body>
 </html>

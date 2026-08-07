@@ -113,6 +113,32 @@ body::before {
   right: 0;
   z-index: 5;
   padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--chip-bg);
+  backdrop-filter: blur(12px);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 160ms ease, background-color 160ms ease, opacity 160ms ease;
+}
+
+.icon-button:hover {
+  transform: translateY(-1px);
+}
+
+.icon-button[aria-pressed="false"] {
+  opacity: 0.66;
 }
 
 .lang-switch {
@@ -200,12 +226,34 @@ body::before {
   padding: 2px 0 0;
 }
 
-.app-shell > [hidden] {
+[hidden] {
   display: none !important;
 }
 
-.session-panel[aria-hidden="true"] {
-  display: none !important;
+.view {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  width: 100%;
+  animation: viewIn 320ms ease;
+}
+
+.view-session,
+.view-recall {
+  position: relative;
+  width: min(560px, calc(100vw - 40px));
+  text-align: center;
+}
+
+@keyframes viewIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .roulette-frame {
@@ -283,6 +331,7 @@ body::before {
   letter-spacing: 0.02em;
   color: var(--item-dim);
   text-transform: uppercase;
+  white-space: nowrap;
   transition:
     color 180ms ease,
     transform 180ms ease,
@@ -375,20 +424,59 @@ body::before {
   box-shadow: none;
 }
 
-/* ---- Progress row ---- */
-.progress-row {
+/* ---- Stats bar ---- */
+.stats-bar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 12px;
-  padding: 0 4px;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+  width: min(520px, calc(100vw - 32px));
 }
 
-.progress-text {
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
+.stat {
+  flex: 1 1 0;
+  min-width: 66px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 9px 6px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--result-bg);
+}
+
+button.stat {
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+button.stat:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+
+.stat-value {
+  font-family: "Syne", sans-serif;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--text);
+}
+
+.stat-goal.is-hit .stat-value {
+  color: var(--warning);
+}
+
+.stat-key {
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--muted);
+}
+
+.stat-reset {
+  align-self: center;
 }
 
 .ghost-button {
@@ -410,24 +498,155 @@ body::before {
   background: var(--chip-bg);
 }
 
-/* ---- Session panel ---- */
-.session-panel {
-  position: relative;
+/* ---- Session: research brief ---- */
+.brief {
+  width: 100%;
   display: grid;
-  justify-items: center;
-  gap: 18px;
-  width: min(560px, calc(100vw - 40px));
-  text-align: center;
-  opacity: 0;
-  transform: translateY(18px) scale(0.98);
-  transition:
-    opacity 320ms ease,
-    transform 320ms ease;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid var(--result-line);
+  background: var(--result-bg);
+  backdrop-filter: blur(14px);
+  text-align: left;
 }
 
-.session-panel.is-visible {
-  opacity: 1;
-  transform: translateY(0) scale(1);
+.brief-label {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.brief-questions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.brief-questions li {
+  position: relative;
+  padding-left: 22px;
+  font-size: clamp(0.95rem, 2.3vw, 1.08rem);
+  line-height: 1.35;
+}
+
+.brief-questions li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: var(--warning);
+}
+
+.present-prompt {
+  margin: 0;
+  max-width: 30ch;
+  font-size: clamp(1rem, 2.6vw, 1.2rem);
+  line-height: 1.4;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+/* ---- Recall / grade ---- */
+.recall-title {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.recall-def {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--result-line);
+  background: var(--result-bg);
+  backdrop-filter: blur(14px);
+}
+
+.recall-def-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.recall-def-text {
+  margin: 0;
+  font-size: clamp(1rem, 2.6vw, 1.18rem);
+  line-height: 1.4;
+  text-wrap: balance;
+}
+
+.grade-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.grade-button {
+  display: grid;
+  gap: 3px;
+  padding: 14px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--line-strong);
+  background: var(--result-bg);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.grade-button:hover {
+  transform: translateY(-1px);
+}
+
+.grade-label {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.grade-interval {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.grade-again:hover { border-color: #d9534f; }
+.grade-hard:hover { border-color: #c98a3b; }
+.grade-good:hover { border-color: #4f9d69; }
+.grade-easy:hover { border-color: #4f7fd9; }
+
+/* ---- Keyboard / timer hints ---- */
+.kbd-hint {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.timer-hint {
+  margin: -4px 0 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.timer-orb.is-running,
+.timer-orb.is-paused {
+  cursor: pointer;
+}
+
+.timer-orb.is-paused {
+  filter: saturate(0.55);
+  opacity: 0.85;
 }
 
 .back-button {
@@ -611,8 +830,12 @@ body::before {
     font-size: 0.88rem;
   }
 
-  .session-panel {
+  .view {
     gap: 14px;
+  }
+
+  .grade-button {
+    padding: 12px 10px;
   }
 
   .back-button {

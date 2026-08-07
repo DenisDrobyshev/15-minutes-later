@@ -1,38 +1,39 @@
 # 15 Minutes Later
 
-Рулетка выбирает концепт — у тебя 15 минут, чтобы в нём разобраться, и 1 минута, чтобы пересказать. Тренажёр памяти и концентрации на двух языках: русском и английском.
+Рулетка выбирает концепт. 15 минут разбираешь, минуту рассказываешь по памяти, ставишь себе оценку — и система решает, когда вернуть его снова. Тренажёр памяти и концентрации на русском и английском.
 
 **Живая версия:** https://denisdrobyshev.github.io/15-minutes-later/
 
-Это аналог проекта [15-minutos-después](https://rubencastelar.github.io/15-minutos-despues/) (rubi_castelar). Взяты идея и внешний вид; переписаны язык, модель выбора и часть поведения.
-
 ## Что это
 
-Колесо прокручивает список из 58 концептов о сознании, психологии и нейронауке и останавливается на одном. Дальше начинается сессия: таймер на 15 минут исследования, потом на 1 минуту презентации. Тики и финальный тон — на Web Audio, без файлов.
+Колесо крутит 58 концептов о памяти, внимании, мышлении и работе мозга и останавливается на одном. Дальше не «прочитал и забыл», а полный цикл. Смысл в ограничении: тема выбрана за тебя, время задано, отступать некуда.
 
-Смысл не в рулетке, а в ограничении: тема выбрана за тебя, время задано, отступать некуда.
+## Цикл обучения
 
-## Модель выбора
+Память строится так: закодировать → вспомнить под нагрузкой → вернуть в нужный момент. Простое чтение делает только первый шаг. Здесь есть все три.
 
-Главное отличие от оригинала. Там победитель берётся плоским `Math.random()`: каждый концепт равновероятен каждый раз. Для тренажёра памяти это плохой стимул — колесо повторяется, кучкуется и никогда не проходит весь набор.
+- **Бриф** — концепт и два наводящих вопроса. 15 минут получают направление, а не «читай что попало».
+- **15 минут** — исследуешь тему.
+- **1 минута** — рассказываешь вслух по памяти. Это активное припоминание: оно укрепляет память сильнее, чем перечитывание.
+- **Оценка** — не помню / трудно / хорошо / легко.
 
-Здесь выбор взвешенный. Каждый кандидат получает вес из трёх множителей:
+## Планировщик
 
-- **новизна** — концепты, которые ещё не выпадали, получают буст, поэтому сначала показывается весь набор, а не одни и те же фавориты;
-- **давность** — недавно показанный концепт подавляется и восстанавливается линейно за `COVER_WINDOW` прокруток: это разнесённое повторение;
-- **частота** — чем чаще концепт уже выпадал, тем ниже его вес, чтобы распределение на длинной дистанции оставалось ровным.
+Оценка кормит планировщик в духе SM-2 — той же схемы, что у Anki. Интервал до следующего показа растёт с уверенностью: «легко» отодвигает концепт на дни вперёд, «не помню» возвращает его в ту же сессию. Предыдущий победитель исключается — два раза подряд один концепт не выпадет. Ещё до нажатия видно, через сколько вернётся каждый вариант. Всё состояние живёт в `localStorage` и переживает перезагрузку.
 
-Предыдущий победитель исключается полностью: два раза подряд один концепт не выпадет. Прогресс живёт в `localStorage`, поэтому покрытие переживает перезагрузку. Внизу видно «Изучено N из 58», рядом — сброс.
+Это отличает тренажёр от рулетки: колесо не крутит случайное, а ведёт тебя по интервальному повторению.
 
-Итог: колесо ведёт тебя по всему набору, а не крутит любимые пять слов.
+## Прогресс
+
+Внизу — дневная цель (кликом меняется), стрик по дням, сколько концептов к возврату сегодня и сколько изучено из 58. То, ради чего возвращаешься.
 
 ## Языки
 
-Русский и английский, переключатель в правом верхнем углу. Все 58 концептов лежат параллельными массивами с одинаковыми индексами, поэтому смена языка не меняет выбранный концепт — только его написание. Выбранный язык запоминается; по умолчанию берётся из языка браузера.
+Русский и английский, переключатель в правом верхнем углу. Все 58 концептов, их определения и вопросы лежат параллельно с общими индексами — смена языка не меняет выбранный концепт, только его написание. Язык запоминается; по умолчанию берётся из браузера.
 
 ## Стек
 
-Ванильные HTML, CSS и JavaScript, без зависимостей и сборки. Шрифты — Space Grotesk и Syne. Тёмная тема включается по `prefers-color-scheme`, анимации сокращаются по `prefers-reduced-motion`.
+Ванильные HTML, CSS и JavaScript, без зависимостей и сборки. Тёмная тема по `prefers-color-scheme`, анимации сокращаются по `prefers-reduced-motion`. Звук — на Web Audio, отключается. Хостинг — GitHub Pages.
 
 ## Запуск
 
@@ -42,37 +43,46 @@
 python -m http.server 8000
 ```
 
-Открыть `http://localhost:8000`. Хостинг — GitHub Pages из ветки `main`.
+Открыть `http://localhost:8000`.
 
 ## Управление
 
-- **Пробел** — крутить колесо, запускать таймер этапа, завершать сессию;
-- **Кнопки** делают то же самое мышью или касанием.
+- **Пробел** — крутить колесо, запускать этап, ставить таймер на паузу;
+- **клик по таймеру** — пауза и продолжение.
 
 ---
 
 # 15 Minutes Later (EN)
 
-A roulette picks a concept — you get 15 minutes to research it and 1 minute to present it. A memory and concentration trainer in two languages, Russian and English.
+A roulette picks a concept. You research it for 15 minutes, recall it aloud for one, grade yourself — and the system decides when it comes back. A memory and concentration trainer in Russian and English.
 
 **Live:** https://denisdrobyshev.github.io/15-minutes-later/
 
-An adaptation of [15-minutos-después](https://rubencastelar.github.io/15-minutos-despues/) by rubi_castelar: same idea and look, rewritten copy, selection model, and behaviour.
+## The learning loop
 
-## The selection model
+Memory is built by encoding, then retrieving under load, then returning at the right moment. Plain reading only does the first step; this does all three.
 
-The main change from the original. There the winner came from a flat `Math.random()` — every concept equally likely every spin, so the wheel repeats, clusters, and never covers the deck. Wrong incentive for a memory trainer.
+- **Brief** — the concept and two guiding questions, so the 15 minutes have direction.
+- **15 minutes** — research the topic.
+- **1 minute** — recall it aloud from memory. Retrieval practice strengthens memory more than rereading.
+- **Grade** — blank / hard / good / easy.
 
-Here selection is weighted by three factors: **novelty** (unseen concepts get a boost, so the whole set surfaces first), **recency** (a recently shown concept is suppressed and recovers over `COVER_WINDOW` spins — spaced repetition), and **frequency** (the more often shown, the lower the weight, keeping the long-run distribution even). The previous winner is excluded outright, so nothing repeats twice in a row. State persists in `localStorage`, so coverage survives a reload.
+## The scheduler
+
+Your grade feeds an SM-2-style scheduler, the same idea as Anki. The interval before a concept returns grows with confidence: "easy" pushes it days out, "blank" brings it back within the session. The previous winner is excluded, so nothing repeats twice in a row, and each button previews its next interval before you press it. State persists in `localStorage`. The wheel doesn't spin at random — it walks you through spaced repetition.
+
+## Progress
+
+A daily goal (click to change), a day streak, how many concepts are due today, and how many of the 58 you've studied.
 
 ## Languages
 
-Russian and English, toggle in the top-right corner. All 58 concepts are index-aligned parallel arrays, so switching languages keeps the same concept — only its spelling changes. Your choice is remembered; the default follows the browser language.
+Russian and English, toggle in the top-right corner. Concepts, definitions, and questions are index-aligned across languages, so switching keeps the same concept — only its spelling changes.
 
 ## Stack
 
-Vanilla HTML, CSS, and JavaScript — no dependencies, no build. Dark theme via `prefers-color-scheme`, reduced motion via `prefers-reduced-motion`. Served on GitHub Pages.
+Vanilla HTML, CSS, and JavaScript — no dependencies, no build. Dark theme via `prefers-color-scheme`, reduced motion via `prefers-reduced-motion`, mutable Web Audio sound. Served on GitHub Pages.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). Idea inspired by the 15-minute focus format of [15-minutos-después](https://rubencastelar.github.io/15-minutos-despues/).
