@@ -73,6 +73,9 @@ const STRINGS = {
     quizWrong: "Неверно",
     quizAnswerWas: (name) => `Ответ: ${name}`,
     next: "Дальше",
+    quizKeysMcq: "1–4 — выбрать",
+    quizKeysCloze: "Enter — проверить",
+    quizKeysNext: "Enter — дальше",
     matchInstruction: "Сопоставь концепты и определения",
     summaryTitle: "Тест завершён",
     summaryScore: (c, total) => `${c} / ${total}`,
@@ -137,6 +140,9 @@ const STRINGS = {
     quizWrong: "Wrong",
     quizAnswerWas: (name) => `Answer: ${name}`,
     next: "Next",
+    quizKeysMcq: "1–4 to pick",
+    quizKeysCloze: "Enter to check",
+    quizKeysNext: "Enter to continue",
     matchInstruction: "Match concepts to definitions",
     summaryTitle: "Test complete",
     summaryScore: (c, total) => `${c} / ${total}`,
@@ -252,6 +258,7 @@ const quizOptionsEl = document.getElementById("quiz-options");
 const quizClozeEl = document.getElementById("quiz-cloze");
 const quizInput = document.getElementById("quiz-input");
 const quizCheckBtn = document.getElementById("quiz-check");
+const quizKbdHintEl = document.getElementById("quiz-kbd-hint");
 const quizFeedbackEl = document.getElementById("quiz-feedback");
 const quizVerdictEl = document.getElementById("quiz-verdict");
 const quizAnswerEl = document.getElementById("quiz-answer");
@@ -1158,6 +1165,7 @@ function renderQuiz(question, progressText) {
     quizCheckBtn.disabled = false;
     quizInput.setAttribute("placeholder", t().quizInputPlaceholder);
     quizCheckBtn.textContent = t().quizCheck;
+    quizKbdHintEl.textContent = t().quizKeysCloze;
     window.setTimeout(() => quizInput.focus(), 0);
   } else {
     quizClozeEl.hidden = true;
@@ -1167,10 +1175,19 @@ function renderQuiz(question, progressText) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "quiz-option";
-      btn.textContent = text;
       btn.dataset.pos = String(pos);
+      const key = document.createElement("span");
+      key.className = "quiz-key";
+      key.textContent = String(pos + 1);
+      const label = document.createElement("span");
+      label.className = "quiz-option-text";
+      label.textContent = text;
+      btn.append(key, label);
       quizOptionsEl.appendChild(btn);
     });
+    quizKbdHintEl.textContent = t().quizKeysMcq;
+    // Avoid a stale focused button catching Space/Enter as an answer.
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
 }
 
@@ -1187,6 +1204,7 @@ function resolveQuiz(correct) {
   quizFeedbackEl.hidden = false;
   quizNextBtn.textContent = t().next;
   quizNextBtn.hidden = false;
+  quizKbdHintEl.textContent = t().quizKeysNext;
 
   if (q.format === "cloze") {
     quizInput.disabled = true;
@@ -1199,6 +1217,8 @@ function resolveQuiz(correct) {
       else if (btn.classList.contains("is-chosen")) btn.classList.add("is-wrong");
     });
   }
+
+  window.setTimeout(() => quizNextBtn.focus(), 0);
 }
 
 function onQuizOption(pos) {
@@ -1288,6 +1308,7 @@ function enterSummary() {
   summaryScoreEl.textContent = t().summaryScore(reviewScore, reviewTotal);
   summarySubEl.textContent = t().summarySub(reviewScore, reviewTotal);
   setMode("summary");
+  window.setTimeout(() => summaryDoneBtn.focus(), 0);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1351,7 +1372,10 @@ function onMatchClick(el) {
     }
     matchRemaining -= 1;
     matchSelected = null;
-    if (matchRemaining <= 0) matchContinueBtn.hidden = false;
+    if (matchRemaining <= 0) {
+      matchContinueBtn.hidden = false;
+      window.setTimeout(() => matchContinueBtn.focus(), 0);
+    }
   } else {
     matchErrored.add(matchSelected);
     const wrongConcept = matchSelected;
@@ -1502,6 +1526,28 @@ window.addEventListener("resize", () => {
 });
 
 window.addEventListener("keydown", (event) => {
+  // Quiz keyboard: 1–4 pick an option, Enter/Space advances feedback.
+  if (currentMode === "quiz") {
+    if (!quizNextBtn.hidden) {
+      if (event.target === quizNextBtn) return; // let the button activate natively
+      if (event.key === "Enter" || event.code === "Space") {
+        event.preventDefault();
+        onQuizNext();
+      }
+      return;
+    }
+    if (event.target === quizInput) return; // typing the cloze answer
+    const q = currentQuestion;
+    if (q && q.format !== "cloze" && event.key >= "1" && event.key <= "9") {
+      const pos = Number(event.key) - 1;
+      if (pos < q.options.length) {
+        event.preventDefault();
+        onQuizOption(pos);
+      }
+    }
+    return;
+  }
+
   if (event.code !== "Space" || shouldIgnoreSpaceTrigger(event.target)) return;
   event.preventDefault();
   if (currentMode === "idle") spin();
