@@ -324,14 +324,18 @@ function loadStore() {
       parsed &&
       parsed.version === STORE_VERSION &&
       Array.isArray(parsed.cards) &&
-      parsed.cards.length === N &&
       parsed.stats
     ) {
       const base = freshStore();
+      // Keep existing cards by index; pad new concepts, drop removed ones.
+      const cards = Array.from({ length: N }, (_, i) => ({
+        ...freshCard(),
+        ...(parsed.cards[i] || {}),
+      }));
       return {
         version: STORE_VERSION,
         spinCounter: Number(parsed.spinCounter) || 0,
-        cards: parsed.cards.map((c) => ({ ...freshCard(), ...c })),
+        cards,
         stats: { ...base.stats, ...parsed.stats },
       };
     }
