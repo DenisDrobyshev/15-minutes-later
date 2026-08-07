@@ -804,6 +804,243 @@ button.stat:hover {
   white-space: pre-wrap;
 }
 
+/* ---- Test button (idle) ---- */
+.test-button {
+  width: min(520px, calc(100vw - 32px));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 11px 18px;
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--result-bg);
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, opacity 160ms ease;
+}
+
+.test-button:hover {
+  transform: translateY(-1px);
+  border-color: var(--text);
+}
+
+.test-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.test-count {
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--btn-from), var(--btn-to));
+  color: var(--btn-text);
+  font-size: 0.78rem;
+}
+
+/* ---- Quiz / summary ---- */
+.view-quiz,
+.view-summary {
+  position: relative;
+  width: min(560px, calc(100vw - 40px));
+  text-align: center;
+}
+
+.quiz-progress {
+  margin: 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+.quiz-instruction {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.quiz-prompt {
+  margin: 0;
+  font-family: "Syne", sans-serif;
+  font-size: clamp(1.3rem, 4vw, 2rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.quiz-options {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+}
+
+.quiz-option {
+  padding: 13px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line-strong);
+  background: var(--result-bg);
+  color: var(--text);
+  font: inherit;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease;
+}
+
+.quiz-option:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--text);
+}
+
+.quiz-option:disabled {
+  cursor: default;
+}
+
+.quiz-option.is-correct {
+  border-color: #4f9d69;
+  background: color-mix(in srgb, #4f9d69 16%, var(--result-bg));
+}
+
+.quiz-option.is-wrong {
+  border-color: #d9534f;
+  background: color-mix(in srgb, #d9534f 16%, var(--result-bg));
+}
+
+.quiz-cloze {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+}
+
+.quiz-input {
+  width: 100%;
+  padding: 13px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line-strong);
+  background: var(--result-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.05rem;
+  text-align: center;
+}
+
+.quiz-input:focus {
+  outline: none;
+  border-color: var(--focus-ring);
+}
+
+.quiz-feedback {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--result-line);
+  background: var(--result-bg);
+  text-align: left;
+}
+
+.quiz-verdict {
+  margin: 0;
+  font-family: "Syne", sans-serif;
+  font-size: 1.2rem;
+}
+
+.quiz-verdict.is-correct {
+  color: #4f9d69;
+}
+
+.quiz-verdict.is-wrong {
+  color: #d9534f;
+}
+
+.quiz-answer {
+  margin: 0;
+  font-weight: 700;
+}
+
+.quiz-def {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* ---- Matching ---- */
+.view-match {
+  position: relative;
+  width: min(760px, calc(100vw - 32px));
+  text-align: center;
+}
+
+.match-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.match-col {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.match-item {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line-strong);
+  background: var(--result-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease, opacity 220ms ease;
+}
+
+.match-concept {
+  font-weight: 700;
+  text-align: center;
+}
+
+.match-item.is-selected {
+  border-color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 14%, var(--result-bg));
+}
+
+.match-item.is-matched {
+  opacity: 0.4;
+  border-style: dashed;
+  cursor: default;
+}
+
+.match-item.is-wrong {
+  border-color: #d9534f;
+  background: color-mix(in srgb, #d9534f 18%, var(--result-bg));
+}
+
+/* ---- Summary ---- */
+.summary-score {
+  font-family: "Syne", sans-serif;
+  font-size: clamp(2.4rem, 10vw, 4rem);
+  line-height: 1;
+  color: var(--text);
+}
+
+.summary-sub {
+  margin: 0;
+  color: var(--muted);
+}
+
 .back-button {
   position: absolute;
   top: -4px;

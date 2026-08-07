@@ -18,7 +18,7 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=2026-08-07d" />
+    <link rel="stylesheet" href="./styles.css?v=2026-08-07e" />
   </head>
   <body>
     <div class="ambient ambient-left"></div>
@@ -97,6 +97,9 @@
           <button type="button" class="toggle-chip" id="write-toggle" aria-pressed="false">
             ✎ <span id="write-toggle-label">Письмо</span>
           </button>
+          <button type="button" class="toggle-chip" id="check-toggle" aria-pressed="false">
+            ✔ <span id="check-toggle-label">Проверка</span>
+          </button>
         </section>
 
         <section class="stats-bar" id="stats-bar">
@@ -120,6 +123,11 @@
             Сброс
           </button>
         </section>
+
+        <button type="button" class="test-button" id="test-button">
+          <span id="test-button-label">Тест</span>
+          <span class="test-count" id="test-count">0</span>
+        </button>
 
         <footer class="site-footer">
           <a
@@ -215,9 +223,68 @@
           </button>
         </div>
       </div>
+
+      <!-- ============ QUIZ ============ -->
+      <div class="view view-quiz" id="view-quiz" hidden>
+        <button class="back-button" id="quiz-back" type="button" aria-label="Назад">
+          ← Назад
+        </button>
+        <p class="persistent-tag" id="quiz-tag">#15минутспустя</p>
+        <p class="quiz-progress" id="quiz-progress" hidden></p>
+        <p class="quiz-instruction" id="quiz-instruction"></p>
+        <p class="quiz-prompt" id="quiz-prompt"></p>
+
+        <div class="quiz-options" id="quiz-options"></div>
+
+        <div class="quiz-cloze" id="quiz-cloze" hidden>
+          <input
+            type="text"
+            id="quiz-input"
+            class="quiz-input"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            placeholder="название концепта…"
+          />
+          <button type="button" class="spin-button" id="quiz-check">Проверить</button>
+        </div>
+
+        <div class="quiz-feedback" id="quiz-feedback" hidden>
+          <p class="quiz-verdict" id="quiz-verdict"></p>
+          <p class="quiz-answer" id="quiz-answer"></p>
+          <p class="quiz-def" id="quiz-def"></p>
+        </div>
+
+        <button type="button" class="spin-button" id="quiz-next" hidden>Дальше</button>
+      </div>
+
+      <!-- ============ MATCH ============ -->
+      <div class="view view-match" id="view-match" hidden>
+        <button class="back-button" id="match-back" type="button" aria-label="Назад">
+          ← Назад
+        </button>
+        <p class="persistent-tag">#15минутспустя</p>
+        <p class="quiz-instruction" id="match-instruction">
+          Сопоставь концепты и определения
+        </p>
+        <div class="match-grid">
+          <div class="match-col" id="match-concepts"></div>
+          <div class="match-col" id="match-defs"></div>
+        </div>
+        <button type="button" class="spin-button" id="match-continue" hidden>Дальше</button>
+      </div>
+
+      <!-- ============ SUMMARY ============ -->
+      <div class="view view-summary" id="view-summary" hidden>
+        <p class="persistent-tag">#15минутспустя</p>
+        <p class="recall-title" id="summary-title">Тест завершён</p>
+        <strong class="summary-score" id="summary-score">0 / 0</strong>
+        <p class="summary-sub" id="summary-sub"></p>
+        <button type="button" class="spin-button" id="summary-done">Готово</button>
+      </div>
     </main>
 
-    <script src="./concepts.js?v=2026-08-07d"></script>
-    <script src="./app.js?v=2026-08-07d"></script>
+    <script src="./concepts.js?v=2026-08-07e"></script>
+    <script src="./app.js?v=2026-08-07e"></script>
   </body>
 </html>

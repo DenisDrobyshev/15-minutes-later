@@ -61,6 +61,22 @@ const STRINGS = {
     gradeEasy: "Легко",
     soon: "скоро",
     interval: (days) => `через ${days} дн.`,
+    checkToggle: "Проверка",
+    checkToggleAria: "Оценивать тестом, а не самооценкой",
+    testButton: "Тест",
+    quizInstructionDef: "Выбери определение",
+    quizInstructionName: "Какой концепт описан?",
+    quizInstructionCloze: "Назови концепт по определению",
+    quizCheck: "Проверить",
+    quizInputPlaceholder: "название концепта…",
+    quizCorrect: "Верно",
+    quizWrong: "Неверно",
+    quizAnswerWas: (name) => `Ответ: ${name}`,
+    next: "Дальше",
+    matchInstruction: "Сопоставь концепты и определения",
+    summaryTitle: "Тест завершён",
+    summaryScore: (c, total) => `${c} / ${total}`,
+    summarySub: (c, total) => `Верно ${c} из ${total}`,
     soundOnLabel: "Звук включён",
     soundOffLabel: "Звук выключен",
     credit: "Вдохновлено проектом 15-minutos-después",
@@ -109,6 +125,22 @@ const STRINGS = {
     gradeEasy: "Easy",
     soon: "soon",
     interval: (days) => `in ${days} d`,
+    checkToggle: "Check",
+    checkToggleAria: "Grade by test, not self-rating",
+    testButton: "Test",
+    quizInstructionDef: "Pick the definition",
+    quizInstructionName: "Which concept is described?",
+    quizInstructionCloze: "Name the concept from its definition",
+    quizCheck: "Check",
+    quizInputPlaceholder: "concept name…",
+    quizCorrect: "Correct",
+    quizWrong: "Wrong",
+    quizAnswerWas: (name) => `Answer: ${name}`,
+    next: "Next",
+    matchInstruction: "Match concepts to definitions",
+    summaryTitle: "Test complete",
+    summaryScore: (c, total) => `${c} / ${total}`,
+    summarySub: (c, total) => `${c} of ${total} correct`,
     soundOnLabel: "Sound on",
     soundOffLabel: "Sound off",
     credit: "Inspired by 15-minutos-después",
@@ -203,6 +235,38 @@ const gradeIntervalEls = Array.from(document.querySelectorAll("[data-grade-inter
 const soundToggleEl = document.getElementById("sound-toggle");
 const langButtons = Array.from(document.querySelectorAll(".lang-button"));
 
+const checkToggleEl = document.getElementById("check-toggle");
+const checkToggleLabelEl = document.getElementById("check-toggle-label");
+const testButton = document.getElementById("test-button");
+const testButtonLabelEl = document.getElementById("test-button-label");
+const testCountEl = document.getElementById("test-count");
+
+const viewQuiz = document.getElementById("view-quiz");
+const viewMatch = document.getElementById("view-match");
+const viewSummary = document.getElementById("view-summary");
+const quizBackBtn = document.getElementById("quiz-back");
+const quizProgressEl = document.getElementById("quiz-progress");
+const quizInstructionEl = document.getElementById("quiz-instruction");
+const quizPromptEl = document.getElementById("quiz-prompt");
+const quizOptionsEl = document.getElementById("quiz-options");
+const quizClozeEl = document.getElementById("quiz-cloze");
+const quizInput = document.getElementById("quiz-input");
+const quizCheckBtn = document.getElementById("quiz-check");
+const quizFeedbackEl = document.getElementById("quiz-feedback");
+const quizVerdictEl = document.getElementById("quiz-verdict");
+const quizAnswerEl = document.getElementById("quiz-answer");
+const quizDefEl = document.getElementById("quiz-def");
+const quizNextBtn = document.getElementById("quiz-next");
+const matchBackBtn = document.getElementById("match-back");
+const matchInstructionEl = document.getElementById("match-instruction");
+const matchConceptsEl = document.getElementById("match-concepts");
+const matchDefsEl = document.getElementById("match-defs");
+const matchContinueBtn = document.getElementById("match-continue");
+const summaryTitleEl = document.getElementById("summary-title");
+const summaryScoreEl = document.getElementById("summary-score");
+const summarySubEl = document.getElementById("summary-sub");
+const summaryDoneBtn = document.getElementById("summary-done");
+
 /* ---------------------------------------------------------------------------
  * Persistence keys.
  * ------------------------------------------------------------------------- */
@@ -238,6 +302,21 @@ let timerPaused = false;
 let remainingMsAtPause = 0;
 let currentStageDurationSeconds = 0;
 
+// Quiz / review state
+let quizContext = "session"; // "session" | "review"
+let currentQuestion = null;
+let quizStartTs = 0;
+let quizPendingGrade = 2;
+let quizPendingCorrect = false;
+let reviewQueue = [];
+let reviewPos = 0;
+let reviewScore = 0;
+let reviewTotal = 0;
+let matchSet = [];
+let matchSelected = null;
+let matchRemaining = 0;
+let matchErrored = null;
+
 let store = freshStore();
 let settings = freshSettings();
 
@@ -267,7 +346,7 @@ function clampInt(value, min, max) {
 }
 
 function freshSettings() {
-  return { preset: "std", customStudy: 20, customPresent: 2, writtenRecall: false };
+  return { preset: "std", customStudy: 20, customPresent: 2, writtenRecall: false, quizGrade: false };
 }
 
 function loadSettings() {
@@ -284,6 +363,7 @@ function loadSettings() {
       customStudy: clampInt(parsed.customStudy ?? base.customStudy, CUSTOM_STUDY_MIN, CUSTOM_STUDY_MAX),
       customPresent: clampInt(parsed.customPresent ?? base.customPresent, CUSTOM_PRESENT_MIN, CUSTOM_PRESENT_MAX),
       writtenRecall: Boolean(parsed.writtenRecall),
+      quizGrade: Boolean(parsed.quizGrade),
     };
   } catch (error) {
     return freshSettings();
@@ -448,9 +528,8 @@ function selectWinner() {
   return winner;
 }
 
-function gradeCurrent(grade) {
-  if (currentWinnerIndex === null) return;
-  const card = store.cards[currentWinnerIndex];
+function applyGrade(index, grade) {
+  const card = store.cards[index];
   const sched = computeSchedule(card, grade);
   const now = Date.now();
 
@@ -463,6 +542,11 @@ function gradeCurrent(grade) {
   card.due = grade === 0 ? now : now + sched.days * DAY;
 
   recordStudy(grade);
+}
+
+function gradeCurrent(grade) {
+  if (currentWinnerIndex === null) return;
+  applyGrade(currentWinnerIndex, grade);
   saveStore();
   goToIdle();
 }
@@ -568,6 +652,10 @@ function applySettingsUi() {
   writeToggleEl.setAttribute("aria-pressed", String(settings.writtenRecall));
   writeToggleEl.setAttribute("aria-label", t().writeToggleAria);
   writeToggleLabelEl.textContent = t().writeToggle;
+  checkToggleEl.classList.toggle("is-active", settings.quizGrade);
+  checkToggleEl.setAttribute("aria-pressed", String(settings.quizGrade));
+  checkToggleEl.setAttribute("aria-label", t().checkToggleAria);
+  checkToggleLabelEl.textContent = t().checkToggle;
 }
 
 /* ---------------------------------------------------------------------------
@@ -580,6 +668,16 @@ function renderStats() {
   statDueEl.textContent = String(dueCount());
   statStudiedEl.textContent = `${seenCount()}/${N}`;
   statGoalEl.classList.toggle("is-hit", displayTodayCount() >= goal && displayTodayCount() > 0);
+  renderTestButton();
+}
+
+function renderTestButton() {
+  const due = dueCount();
+  testCountEl.textContent = String(due);
+  testCountEl.hidden = due === 0;
+  const enabled = seenCount() > 0;
+  testButton.disabled = !enabled;
+  testButton.classList.toggle("is-disabled", !enabled);
 }
 
 function renderBrief(index) {
@@ -755,6 +853,8 @@ function advanceStage() {
   if (stage.key === "write") writtenText = writeAreaEl.value.trim();
   if (currentStageIndex < sessionStages.length - 1) {
     enterStageReady(currentStageIndex + 1);
+  } else if (settings.quizGrade) {
+    enterSessionQuiz();
   } else {
     enterRecall();
   }
@@ -817,16 +917,23 @@ function applySessionSubview(mode) {
 
 function setMode(mode) {
   currentMode = mode;
-  const isIdle = mode === "idle";
-  const isRecall = mode === "recall";
-  const isSession = !isIdle && !isRecall;
+  const view =
+    mode === "idle" ? "idle"
+    : mode === "recall" ? "recall"
+    : mode === "quiz" ? "quiz"
+    : mode === "match" ? "match"
+    : mode === "summary" ? "summary"
+    : "session";
 
-  viewIdle.hidden = !isIdle;
-  viewSession.hidden = !isSession;
-  viewRecall.hidden = !isRecall;
+  viewIdle.hidden = view !== "idle";
+  viewSession.hidden = view !== "session";
+  viewRecall.hidden = view !== "recall";
+  viewQuiz.hidden = view !== "quiz";
+  viewMatch.hidden = view !== "match";
+  viewSummary.hidden = view !== "summary";
   appShell.dataset.mode = mode;
 
-  if (isSession) applySessionSubview(mode);
+  if (view === "session") applySessionSubview(mode);
 }
 
 /* ---------------------------------------------------------------------------
@@ -956,6 +1063,321 @@ function spin() {
 }
 
 /* ---------------------------------------------------------------------------
+ * Quiz engine — objective testing that auto-grades into the SRS.
+ * Formats: mcq-def (concept -> definition), mcq-name (definition -> concept),
+ * cloze (type the concept name from its definition).
+ * ------------------------------------------------------------------------- */
+function shuffleInPlace(arr) {
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function pickDistractors(correctIndex, n) {
+  const pool = [];
+  for (let i = 0; i < N; i += 1) if (i !== correctIndex) pool.push(i);
+  shuffleInPlace(pool);
+  return pool.slice(0, n);
+}
+
+function makeQuestion(index) {
+  const formats = ["mcq-def", "mcq-name", "cloze"];
+  const format = formats[Math.floor(Math.random() * formats.length)];
+  if (format === "cloze") {
+    return { format, index, prompt: CONCEPT_DATA[index][lang].def, answerName: conceptName(index) };
+  }
+  const optionIdx = shuffleInPlace([index, ...pickDistractors(index, 3)]);
+  const correctPos = optionIdx.indexOf(index);
+  const options =
+    format === "mcq-def"
+      ? optionIdx.map((i) => CONCEPT_DATA[i][lang].def)
+      : optionIdx.map((i) => conceptName(i));
+  const prompt = format === "mcq-def" ? conceptName(index) : CONCEPT_DATA[index][lang].def;
+  return { format, index, prompt, options, correctPos };
+}
+
+function normalizeText(s) {
+  return (s || "")
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function levenshtein(a, b) {
+  const m = a.length;
+  const n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i += 1) {
+    const curr = [i];
+    for (let j = 1; j <= n; j += 1) {
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = curr;
+  }
+  return prev[n];
+}
+
+function clozeCorrect(input, answerName) {
+  const a = normalizeText(input);
+  const b = normalizeText(answerName);
+  if (!a) return false;
+  if (a === b) return true;
+  return levenshtein(a, b) <= (b.length > 6 ? 2 : 1);
+}
+
+function gradeFromQuiz(correct, elapsedMs) {
+  if (!correct) return 0;
+  return elapsedMs <= 9000 ? 3 : 2;
+}
+
+function renderQuiz(question, progressText) {
+  const instr =
+    question.format === "mcq-def" ? t().quizInstructionDef
+    : question.format === "mcq-name" ? t().quizInstructionName
+    : t().quizInstructionCloze;
+  quizInstructionEl.textContent = instr;
+  quizPromptEl.textContent = question.prompt;
+  quizProgressEl.hidden = !progressText;
+  quizProgressEl.textContent = progressText || "";
+  quizFeedbackEl.hidden = true;
+  quizVerdictEl.classList.remove("is-correct", "is-wrong");
+  quizNextBtn.hidden = true;
+
+  if (question.format === "cloze") {
+    quizOptionsEl.hidden = true;
+    quizOptionsEl.innerHTML = "";
+    quizClozeEl.hidden = false;
+    quizInput.value = "";
+    quizInput.disabled = false;
+    quizCheckBtn.disabled = false;
+    quizInput.setAttribute("placeholder", t().quizInputPlaceholder);
+    quizCheckBtn.textContent = t().quizCheck;
+    window.setTimeout(() => quizInput.focus(), 0);
+  } else {
+    quizClozeEl.hidden = true;
+    quizOptionsEl.hidden = false;
+    quizOptionsEl.innerHTML = "";
+    question.options.forEach((text, pos) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "quiz-option";
+      btn.textContent = text;
+      btn.dataset.pos = String(pos);
+      quizOptionsEl.appendChild(btn);
+    });
+  }
+}
+
+function resolveQuiz(correct) {
+  const q = currentQuestion;
+  quizPendingCorrect = correct;
+  quizPendingGrade = gradeFromQuiz(correct, Date.now() - quizStartTs);
+
+  quizVerdictEl.textContent = correct ? t().quizCorrect : t().quizWrong;
+  quizVerdictEl.classList.toggle("is-correct", correct);
+  quizVerdictEl.classList.toggle("is-wrong", !correct);
+  quizAnswerEl.textContent = t().quizAnswerWas(conceptName(q.index));
+  quizDefEl.textContent = CONCEPT_DATA[q.index][lang].def;
+  quizFeedbackEl.hidden = false;
+  quizNextBtn.textContent = t().next;
+  quizNextBtn.hidden = false;
+
+  if (q.format === "cloze") {
+    quizInput.disabled = true;
+    quizCheckBtn.disabled = true;
+  } else {
+    Array.from(quizOptionsEl.children).forEach((btn) => {
+      const pos = Number(btn.dataset.pos);
+      btn.disabled = true;
+      if (pos === q.correctPos) btn.classList.add("is-correct");
+      else if (btn.classList.contains("is-chosen")) btn.classList.add("is-wrong");
+    });
+  }
+}
+
+function onQuizOption(pos) {
+  const q = currentQuestion;
+  if (!q || q.format === "cloze") return;
+  const btn = quizOptionsEl.querySelector(`[data-pos="${pos}"]`);
+  if (btn) btn.classList.add("is-chosen");
+  resolveQuiz(pos === q.correctPos);
+}
+
+function onQuizCheck() {
+  const q = currentQuestion;
+  if (!q || q.format !== "cloze") return;
+  resolveQuiz(clozeCorrect(quizInput.value, q.answerName));
+}
+
+function onQuizNext() {
+  if (quizContext === "review") {
+    applyGrade(currentQuestion.index, quizPendingGrade);
+    if (quizPendingCorrect) reviewScore += 1;
+    saveStore();
+    reviewPos += 1;
+    nextReviewQuestion();
+  } else {
+    gradeCurrent(quizPendingGrade);
+  }
+}
+
+function enterSessionQuiz() {
+  quizContext = "session";
+  currentQuestion = makeQuestion(currentWinnerIndex);
+  quizStartTs = Date.now();
+  renderQuiz(currentQuestion, null);
+  setMode("quiz");
+}
+
+/* ---------------------------------------------------------------------------
+ * Review ("Тест") — quiz the due cards in a batch, then a score summary.
+ * ------------------------------------------------------------------------- */
+function reviewableList() {
+  const now = Date.now();
+  const due = [];
+  for (let i = 0; i < N; i += 1) {
+    const c = store.cards[i];
+    if (c.seen && c.due <= now) due.push(i);
+  }
+  if (due.length) return due;
+  const seen = [];
+  for (let i = 0; i < N; i += 1) if (store.cards[i].seen) seen.push(i);
+  seen.sort((a, b) => store.cards[a].due - store.cards[b].due);
+  return seen;
+}
+
+function startReview() {
+  const list = reviewableList();
+  if (!list.length) return;
+  shuffleInPlace(list);
+  const batch = list.slice(0, 12);
+  reviewScore = 0;
+  reviewTotal = batch.length;
+  if (batch.length >= 4) {
+    matchSet = batch.slice(0, Math.min(6, batch.length));
+    reviewQueue = batch.slice(matchSet.length);
+    reviewPos = 0;
+    startMatch();
+  } else {
+    matchSet = [];
+    reviewQueue = batch;
+    reviewPos = 0;
+    nextReviewQuestion();
+  }
+}
+
+function nextReviewQuestion() {
+  if (reviewPos >= reviewQueue.length) {
+    enterSummary();
+    return;
+  }
+  quizContext = "review";
+  currentQuestion = makeQuestion(reviewQueue[reviewPos]);
+  quizStartTs = Date.now();
+  renderQuiz(currentQuestion, `${matchSet.length + reviewPos + 1} / ${reviewTotal}`);
+  setMode("quiz");
+}
+
+function enterSummary() {
+  summaryScoreEl.textContent = t().summaryScore(reviewScore, reviewTotal);
+  summarySubEl.textContent = t().summarySub(reviewScore, reviewTotal);
+  setMode("summary");
+}
+
+/* ---------------------------------------------------------------------------
+ * Matching round — pair concepts with their definitions.
+ * ------------------------------------------------------------------------- */
+function renderMatch() {
+  matchInstructionEl.textContent = t().matchInstruction;
+  matchContinueBtn.hidden = true;
+  matchContinueBtn.textContent = t().next;
+
+  matchConceptsEl.innerHTML = "";
+  matchSet.forEach((idx) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "match-item match-concept";
+    btn.textContent = conceptName(idx);
+    btn.dataset.index = String(idx);
+    matchConceptsEl.appendChild(btn);
+  });
+
+  matchDefsEl.innerHTML = "";
+  shuffleInPlace(matchSet.slice()).forEach((idx) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "match-item match-def";
+    btn.textContent = CONCEPT_DATA[idx][lang].def;
+    btn.dataset.index = String(idx);
+    matchDefsEl.appendChild(btn);
+  });
+}
+
+function startMatch() {
+  matchSelected = null;
+  matchErrored = new Set();
+  matchRemaining = matchSet.length;
+  renderMatch();
+  setMode("match");
+}
+
+function onMatchClick(el) {
+  if (el.classList.contains("is-matched")) return;
+
+  if (el.classList.contains("match-concept")) {
+    matchConceptsEl.querySelectorAll(".is-selected").forEach((x) => x.classList.remove("is-selected"));
+    matchSelected = Number(el.dataset.index);
+    el.classList.add("is-selected");
+    return;
+  }
+
+  if (matchSelected === null) return;
+  const defIdx = Number(el.dataset.index);
+  const conceptBtn = matchConceptsEl.querySelector(`.match-concept[data-index="${matchSelected}"]`);
+
+  if (defIdx === matchSelected) {
+    el.classList.add("is-matched");
+    el.disabled = true;
+    if (conceptBtn) {
+      conceptBtn.classList.add("is-matched");
+      conceptBtn.classList.remove("is-selected");
+      conceptBtn.disabled = true;
+    }
+    matchRemaining -= 1;
+    matchSelected = null;
+    if (matchRemaining <= 0) matchContinueBtn.hidden = false;
+  } else {
+    matchErrored.add(matchSelected);
+    const wrongConcept = matchSelected;
+    el.classList.add("is-wrong");
+    if (conceptBtn) conceptBtn.classList.add("is-wrong");
+    matchSelected = null;
+    window.setTimeout(() => {
+      el.classList.remove("is-wrong");
+      const cb = matchConceptsEl.querySelector(`.match-concept[data-index="${wrongConcept}"]`);
+      if (cb) cb.classList.remove("is-wrong", "is-selected");
+    }, 480);
+  }
+}
+
+function finishMatch() {
+  matchSet.forEach((idx) => {
+    const clean = !matchErrored.has(idx);
+    applyGrade(idx, clean ? 2 : 0);
+    if (clean) reviewScore += 1;
+  });
+  saveStore();
+  reviewPos = 0;
+  nextReviewQuestion();
+}
+
+/* ---------------------------------------------------------------------------
  * Language application.
  * ------------------------------------------------------------------------- */
 function updateSoundToggleUi() {
@@ -1035,6 +1457,26 @@ function applyLanguage(next) {
       timerStageEl.textContent = s[sessionStages[currentStageIndex].labelKey];
       if (sessionStages[currentStageIndex].key === "write") sessionButton.textContent = s.done;
     }
+  }
+
+  testButtonLabelEl.textContent = s.testButton;
+  summaryTitleEl.textContent = s.summaryTitle;
+  summaryDoneBtn.textContent = s.done;
+  quizBackBtn.textContent = s.back;
+  matchBackBtn.textContent = s.back;
+  quizCheckBtn.textContent = s.quizCheck;
+  quizInput.setAttribute("placeholder", s.quizInputPlaceholder);
+
+  if (currentMode === "quiz" && currentQuestion) {
+    const prog = quizProgressEl.hidden ? null : quizProgressEl.textContent;
+    currentQuestion = makeQuestion(currentQuestion.index);
+    quizStartTs = Date.now();
+    renderQuiz(currentQuestion, prog);
+  } else if (currentMode === "match") {
+    startMatch();
+  } else if (currentMode === "summary") {
+    summaryScoreEl.textContent = s.summaryScore(reviewScore, reviewTotal);
+    summarySubEl.textContent = s.summarySub(reviewScore, reviewTotal);
   }
 
   renderRoulette(currentMode !== "idle" ? currentWinnerIndex : null);
@@ -1141,6 +1583,42 @@ langButtons.forEach((btn) => {
   btn.addEventListener("click", () => applyLanguage(btn.dataset.lang));
 });
 
+checkToggleEl.addEventListener("click", () => {
+  settings.quizGrade = !settings.quizGrade;
+  saveSettings();
+  applySettingsUi();
+});
+
+testButton.addEventListener("click", () => {
+  if (seenCount() > 0) startReview();
+});
+
+quizOptionsEl.addEventListener("click", (event) => {
+  const btn = event.target.closest(".quiz-option");
+  if (btn && !btn.disabled) onQuizOption(Number(btn.dataset.pos));
+});
+quizCheckBtn.addEventListener("click", onQuizCheck);
+quizInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    if (!quizCheckBtn.disabled) onQuizCheck();
+  }
+});
+quizNextBtn.addEventListener("click", onQuizNext);
+quizBackBtn.addEventListener("click", goToIdle);
+
+matchConceptsEl.addEventListener("click", (event) => {
+  const btn = event.target.closest(".match-item");
+  if (btn) onMatchClick(btn);
+});
+matchDefsEl.addEventListener("click", (event) => {
+  const btn = event.target.closest(".match-item");
+  if (btn) onMatchClick(btn);
+});
+matchContinueBtn.addEventListener("click", finishMatch);
+matchBackBtn.addEventListener("click", goToIdle);
+summaryDoneBtn.addEventListener("click", goToIdle);
+
 /* ---------------------------------------------------------------------------
  * Boot.
  * ------------------------------------------------------------------------- */
@@ -1160,7 +1638,11 @@ if (location.search.indexOf("debug") !== -1) {
     get winner() { return currentWinnerIndex; },
     get stages() { return sessionStages; },
     get written() { return writtenText; },
-    spin, startStage, enterRecall, gradeCurrent, selectWinner, computeSchedule,
+    get question() { return currentQuestion; },
+    get review() { return { pos: reviewPos, total: reviewTotal, score: reviewScore, queue: reviewQueue, matchSet }; },
+    spin, startStage, enterRecall, enterSessionQuiz, gradeCurrent, selectWinner, computeSchedule,
+    startReview, onQuizOption, onQuizCheck, onQuizNext, onMatchClick, finishMatch,
+    clozeCorrect, makeQuestion,
     expireTimer() { timerDeadline = Date.now() - 1; timerTick(); },
   };
 }

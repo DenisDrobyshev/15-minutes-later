@@ -23,6 +23,12 @@
 
 Это отличает тренажёр от рулетки: колесо не крутит случайное, а ведёт тебя по интервальному повторению.
 
+## Тестирование
+
+Самооценка субъективна. Включи «Проверку» в настройках — и в конце сессии вместо «оцени сам» появляется объективный вопрос: выбрать определение к концепту, выбрать концепт к определению или ввести название по определению. Результат сам ставит оценку планировщику: верно и быстро идёт как «легко», ошибка — как «не помню».
+
+Кнопка «Тест» на главной — отдельный режим повторения. Он прогоняет карточки «к возврату» пачкой: сначала матчинг-сетка, потом вопросы, в конце — счёт. Варианты и определения берутся из самого набора, без бэкенда.
+
 ## Прогресс
 
 Внизу — дневная цель (кликом меняется), стрик по дням, сколько концептов к возврату сегодня и сколько изучено из 80. То, ради чего возвращаешься.
@@ -70,6 +76,12 @@ Memory is built by encoding, then retrieving under load, then returning at the r
 ## The scheduler
 
 Your grade feeds an SM-2-style scheduler, the same idea as Anki. The interval before a concept returns grows with confidence: "easy" pushes it days out, "blank" brings it back within the session. The previous winner is excluded, so nothing repeats twice in a row, and each button previews its next interval before you press it. State persists in `localStorage`. The wheel doesn't spin at random — it walks you through spaced repetition.
+
+## Testing
+
+Self-grading is subjective. Turn on "Check" in the settings and the end of a session becomes an objective question instead: pick the definition for a concept, pick the concept for a definition, or type the name from its definition. The result grades the scheduler for you — correct and fast counts as "easy", a miss as "blank".
+
+The "Test" button on the home screen is a separate review mode: it runs your due cards in a batch — a matching grid first, then questions, then a score. Distractors and definitions come from the deck itself, no backend.
 
 ## Progress
 
