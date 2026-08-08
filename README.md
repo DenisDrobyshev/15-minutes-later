@@ -39,6 +39,9 @@
 - **История** — тепловая карта занятий по дням, лучший стрик, дни активности.
 - **Экспорт/импорт** — прогресс лежит в браузере; выгрузи в файл и перенеси на другое устройство.
 - **Первый заход** — короткое «как это работает», потом доступно по кнопке «?».
+- **Установка (PWA)** — ставится на телефон как приложение и работает офлайн.
+- **Свои концепты** — добавляй собственные карточки в разделе «Мои концепты».
+- **Узнать больше** — у каждого концепта ссылки на Wikipedia и поиск.
 
 ## Языки
 
@@ -100,6 +103,9 @@ A daily goal (click to change), a day streak, how many concepts are due today, a
 - **History** — a heatmap of study days, best streak, active days.
 - **Export / import** — progress lives in the browser; export to a file and move it to another device.
 - **First run** — a short "how it works", reachable later via the "?" button.
+- **Install (PWA)** — add it to your phone as an app and use it offline.
+- **Your own concepts** — add custom cards under "My concepts".
+- **Learn more** — every concept links out to Wikipedia and search.
 
 ## Languages
 

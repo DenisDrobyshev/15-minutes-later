@@ -10,7 +10,9 @@
  * stats persist in localStorage. Concept data lives in concepts.js.
  * ==========================================================================*/
 
-const N = CONCEPT_DATA.length;
+const BASE_COUNT = CONCEPT_DATA.length;
+let customConcepts = []; // user-added concepts, appended after the base deck
+let N = BASE_COUNT; // total deck size, recomputed when custom concepts change
 const DAY = 24 * 60 * 60 * 1000;
 
 /* ---------------------------------------------------------------------------
@@ -91,6 +93,15 @@ const STRINGS = {
     onbStart: "Понятно, поехали",
     help: "Как это работает",
     settings: "Настройки",
+    editorBtn: "Мои концепты",
+    editorTitle: "Мои концепты",
+    editorEmpty: "Пока пусто — добавь свой первый концепт.",
+    ceName: "Название",
+    ceDef: "Определение",
+    ceQ1: "Вопрос 1 (необязательно)",
+    ceQ2: "Вопрос 2 (необязательно)",
+    ceAdd: "Добавить",
+    ceDelete: "Удалить",
     exportBtn: "Экспорт",
     importBtn: "Импорт",
     importError: "Не удалось прочитать файл",
@@ -179,6 +190,15 @@ const STRINGS = {
     onbStart: "Got it, let's go",
     help: "How it works",
     settings: "Settings",
+    editorBtn: "My concepts",
+    editorTitle: "My concepts",
+    editorEmpty: "Empty for now — add your first concept.",
+    ceName: "Name",
+    ceDef: "Definition",
+    ceQ1: "Question 1 (optional)",
+    ceQ2: "Question 2 (optional)",
+    ceAdd: "Add",
+    ceDelete: "Delete",
     exportBtn: "Export",
     importBtn: "Import",
     importError: "Could not read the file",
@@ -263,6 +283,7 @@ const sessionConceptEl = document.getElementById("session-concept");
 const briefEl = document.getElementById("session-brief");
 const briefLabelEl = document.getElementById("brief-label");
 const briefQuestionsEl = document.getElementById("brief-questions");
+const briefLinksEl = document.getElementById("brief-links");
 const stagePromptEl = document.getElementById("stage-prompt");
 const orbEl = document.getElementById("timer-orb");
 const timerStageEl = document.getElementById("timer-stage");
@@ -279,6 +300,7 @@ const recallWrittenLabelEl = document.getElementById("recall-written-label");
 const recallWrittenTextEl = document.getElementById("recall-written-text");
 const recallDefLabelEl = document.getElementById("recall-def-label");
 const recallDefTextEl = document.getElementById("recall-def-text");
+const recallLinksEl = document.getElementById("recall-links");
 const gradeButtons = Array.from(document.querySelectorAll(".grade-button"));
 const gradeLabelEls = Array.from(document.querySelectorAll(".grade-button .grade-label"));
 const gradeIntervalEls = Array.from(document.querySelectorAll("[data-grade-interval]"));
@@ -342,6 +364,18 @@ const onbTitleEl = document.getElementById("onb-title");
 const onbStepsEl = document.getElementById("onb-steps");
 const onbStartBtn = document.getElementById("onb-start");
 
+const editorButton = document.getElementById("editor-button");
+const viewEditor = document.getElementById("view-editor");
+const editorBackBtn = document.getElementById("editor-back");
+const editorTitleEl = document.getElementById("editor-title");
+const editorListEl = document.getElementById("editor-list");
+const ceName = document.getElementById("ce-name");
+const ceDef = document.getElementById("ce-def");
+const ceQ1 = document.getElementById("ce-q1");
+const ceQ2 = document.getElementById("ce-q2");
+const ceCatSelect = document.getElementById("ce-cat");
+const ceAddBtn = document.getElementById("ce-add");
+
 /* ---------------------------------------------------------------------------
  * Persistence keys.
  * ------------------------------------------------------------------------- */
@@ -351,6 +385,7 @@ const SOUND_KEY = "fml.sound";
 const STORE_KEY = "fml.store.v1";
 const SETTINGS_KEY = "fml.settings.v1";
 const ONB_KEY = "fml.onboarded";
+const CUSTOM_KEY = "fml.custom.v1";
 const STORE_VERSION = 1;
 
 const prefersReducedMotion =
@@ -436,6 +471,33 @@ function normalizeCategories(list) {
   if (!Array.isArray(list)) return CATEGORY_ORDER.slice();
   const filtered = list.filter((c) => CATEGORY_ORDER.includes(c));
   return filtered.length ? filtered : CATEGORY_ORDER.slice();
+}
+
+function normalizeCustomEntry(c) {
+  return {
+    name: String(c.name || "").slice(0, 80),
+    def: String(c.def || "").slice(0, 300),
+    q: Array.isArray(c.q) ? c.q.slice(0, 2).map((x) => String(x || "").slice(0, 160)).filter(Boolean) : [],
+    cat: CATEGORY_ORDER.includes(c.cat) ? c.cat : "memory",
+  };
+}
+
+function loadCustom() {
+  const raw = safeGet(CUSTOM_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((c) => c && c.name && c.def)
+      .map(normalizeCustomEntry);
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveCustom() {
+  safeSet(CUSTOM_KEY, JSON.stringify(customConcepts));
 }
 
 function loadSettings() {
@@ -585,7 +647,7 @@ function weightedPick(list, weightFn) {
 }
 
 function categoryEnabled(index) {
-  return settings.categories.includes(CATEGORY_OF[index]);
+  return settings.categories.includes(deckEntry(index).cat);
 }
 
 function selectWinner() {
@@ -700,8 +762,30 @@ function t() {
   return STRINGS[lang];
 }
 
+function deckEntry(index) {
+  if (index < BASE_COUNT) {
+    const base = CONCEPT_DATA[index][lang];
+    return { name: base.name, def: base.def, q: base.q, cat: CATEGORY_OF[index], custom: false };
+  }
+  const c = customConcepts[index - BASE_COUNT];
+  return { name: c.name, def: c.def, q: c.q, cat: c.cat, custom: true };
+}
+
 function conceptName(index) {
-  return CONCEPT_DATA[index][lang].name;
+  return deckEntry(index).name;
+}
+
+function conceptLinks(index) {
+  if (index >= BASE_COUNT) return [];
+  const displayName = deckEntry(index).name;
+  const enName = CONCEPT_DATA[index].en.name;
+  return [
+    {
+      label: "Wikipedia",
+      url: `https://${lang}.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(displayName)}`,
+    },
+    { label: "Google", url: `https://www.google.com/search?q=${encodeURIComponent(enName)}` },
+  ];
 }
 
 function detectInitialLang() {
@@ -787,10 +871,26 @@ function renderTestButton() {
 function renderBrief(index) {
   briefLabelEl.textContent = t().briefLabel;
   briefQuestionsEl.innerHTML = "";
-  CONCEPT_DATA[index][lang].q.forEach((question) => {
+  deckEntry(index).q.forEach((question) => {
     const li = document.createElement("li");
     li.textContent = question;
     briefQuestionsEl.appendChild(li);
+  });
+  renderConceptLinks(briefLinksEl, index);
+}
+
+function renderConceptLinks(container, index) {
+  const links = conceptLinks(index);
+  container.innerHTML = "";
+  container.hidden = links.length === 0;
+  links.forEach((link) => {
+    const a = document.createElement("a");
+    a.className = "concept-link";
+    a.href = link.url;
+    a.target = "_blank";
+    a.rel = "noreferrer";
+    a.textContent = link.label;
+    container.appendChild(a);
   });
 }
 
@@ -1028,6 +1128,7 @@ function setMode(mode) {
     : mode === "match" ? "match"
     : mode === "summary" ? "summary"
     : mode === "history" ? "history"
+    : mode === "editor" ? "editor"
     : "session";
 
   viewIdle.hidden = view !== "idle";
@@ -1037,6 +1138,7 @@ function setMode(mode) {
   viewMatch.hidden = view !== "match";
   viewSummary.hidden = view !== "summary";
   viewHistory.hidden = view !== "history";
+  viewEditor.hidden = view !== "editor";
   appShell.dataset.mode = mode;
 
   if (view === "session") applySessionSubview(mode);
@@ -1071,7 +1173,8 @@ function enterStageReady(index) {
 function enterRecall() {
   const index = currentWinnerIndex;
   recallConceptEl.textContent = conceptName(index);
-  recallDefTextEl.textContent = CONCEPT_DATA[index][lang].def;
+  recallDefTextEl.textContent = deckEntry(index).def;
+  renderConceptLinks(recallLinksEl, index);
   if (writtenText) {
     recallWrittenTextEl.textContent = writtenText;
     recallWrittenEl.hidden = false;
@@ -1192,15 +1295,15 @@ function makeQuestion(index) {
   const formats = ["mcq-def", "mcq-name", "cloze"];
   const format = formats[Math.floor(Math.random() * formats.length)];
   if (format === "cloze") {
-    return { format, index, prompt: CONCEPT_DATA[index][lang].def, answerName: conceptName(index) };
+    return { format, index, prompt: deckEntry(index).def, answerName: conceptName(index) };
   }
   const optionIdx = shuffleInPlace([index, ...pickDistractors(index, 3)]);
   const correctPos = optionIdx.indexOf(index);
   const options =
     format === "mcq-def"
-      ? optionIdx.map((i) => CONCEPT_DATA[i][lang].def)
+      ? optionIdx.map((i) => deckEntry(i).def)
       : optionIdx.map((i) => conceptName(i));
-  const prompt = format === "mcq-def" ? conceptName(index) : CONCEPT_DATA[index][lang].def;
+  const prompt = format === "mcq-def" ? conceptName(index) : deckEntry(index).def;
   return { format, index, prompt, options, correctPos };
 }
 
@@ -1299,7 +1402,7 @@ function resolveQuiz(correct) {
   quizVerdictEl.classList.toggle("is-correct", correct);
   quizVerdictEl.classList.toggle("is-wrong", !correct);
   quizAnswerEl.textContent = t().quizAnswerWas(conceptName(q.index));
-  quizDefEl.textContent = CONCEPT_DATA[q.index][lang].def;
+  quizDefEl.textContent = deckEntry(q.index).def;
   quizFeedbackEl.hidden = false;
   quizNextBtn.textContent = t().next;
   quizNextBtn.hidden = false;
@@ -1433,7 +1536,7 @@ function renderMatch() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "match-item match-def";
-    btn.textContent = CONCEPT_DATA[idx][lang].def;
+    btn.textContent = deckEntry(idx).def;
     btn.dataset.index = String(idx);
     matchDefsEl.appendChild(btn);
   });
@@ -1665,6 +1768,95 @@ function openHistory() {
 }
 
 /* ---------------------------------------------------------------------------
+ * Custom concepts editor.
+ * ------------------------------------------------------------------------- */
+function renderCatSelect() {
+  ceCatSelect.innerHTML = "";
+  CATEGORY_ORDER.forEach((cat) => {
+    const opt = document.createElement("option");
+    opt.value = cat;
+    opt.textContent = t().cats[cat];
+    ceCatSelect.appendChild(opt);
+  });
+}
+
+function renderEditorList() {
+  editorListEl.innerHTML = "";
+  if (!customConcepts.length) {
+    const li = document.createElement("li");
+    li.className = "editor-empty";
+    li.textContent = t().editorEmpty;
+    editorListEl.appendChild(li);
+    return;
+  }
+  customConcepts.forEach((c, i) => {
+    const li = document.createElement("li");
+    li.className = "editor-item";
+    const name = document.createElement("span");
+    name.className = "editor-item-name";
+    name.textContent = c.name;
+    const cat = document.createElement("span");
+    cat.className = "editor-item-cat";
+    cat.textContent = t().cats[c.cat] || c.cat;
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "editor-del";
+    del.dataset.idx = String(i);
+    del.setAttribute("aria-label", t().ceDelete);
+    del.textContent = "×";
+    li.append(name, cat, del);
+    editorListEl.appendChild(li);
+  });
+}
+
+function syncEditorLabels() {
+  editorTitleEl.textContent = t().editorTitle;
+  ceName.setAttribute("placeholder", t().ceName);
+  ceDef.setAttribute("placeholder", t().ceDef);
+  ceQ1.setAttribute("placeholder", t().ceQ1);
+  ceQ2.setAttribute("placeholder", t().ceQ2);
+  ceAddBtn.textContent = t().ceAdd;
+}
+
+function openEditor() {
+  renderCatSelect();
+  ceCatSelect.value = "memory";
+  syncEditorLabels();
+  renderEditorList();
+  setMode("editor");
+}
+
+function addCustomConcept() {
+  const name = ceName.value.trim();
+  const def = ceDef.value.trim();
+  if (!name || !def) return;
+  const q = [ceQ1.value.trim(), ceQ2.value.trim()].filter(Boolean);
+  customConcepts.push(normalizeCustomEntry({ name, def, q, cat: ceCatSelect.value }));
+  saveCustom();
+  N = BASE_COUNT + customConcepts.length;
+  store.cards.push(freshCard());
+  saveStore();
+  ceName.value = "";
+  ceDef.value = "";
+  ceQ1.value = "";
+  ceQ2.value = "";
+  renderEditorList();
+  ceName.focus();
+}
+
+function deleteCustomConcept(i) {
+  if (i < 0 || i >= customConcepts.length) return;
+  customConcepts.splice(i, 1);
+  store.cards.splice(BASE_COUNT + i, 1);
+  N = BASE_COUNT + customConcepts.length;
+  saveCustom();
+  saveStore();
+  if (currentWinnerIndex !== null && currentWinnerIndex >= N) currentWinnerIndex = null;
+  if (lastWinnerIndex !== null && lastWinnerIndex >= N) lastWinnerIndex = null;
+  renderEditorList();
+}
+
+/* ---------------------------------------------------------------------------
  * Language application.
  * ------------------------------------------------------------------------- */
 function updateSoundToggleUi() {
@@ -1722,8 +1914,9 @@ function applyLanguage(next) {
   if (currentWinnerIndex !== null) {
     sessionConceptEl.textContent = conceptName(currentWinnerIndex);
     recallConceptEl.textContent = conceptName(currentWinnerIndex);
-    recallDefTextEl.textContent = CONCEPT_DATA[currentWinnerIndex][lang].def;
+    recallDefTextEl.textContent = deckEntry(currentWinnerIndex).def;
     renderBrief(currentWinnerIndex);
+    renderConceptLinks(recallLinksEl, currentWinnerIndex);
     renderGradePreviews(currentWinnerIndex);
   }
 
@@ -1756,6 +1949,7 @@ function applyLanguage(next) {
 
   helpButton.setAttribute("aria-label", s.help);
   settingsToggleLabelEl.textContent = s.settings;
+  editorButton.textContent = s.editorBtn;
   historyButton.textContent = s.historyBtn;
   exportButton.textContent = s.exportBtn;
   importButton.textContent = s.importBtn;
@@ -1779,6 +1973,10 @@ function applyLanguage(next) {
   } else if (currentMode === "summary") {
     summaryScoreEl.textContent = s.summaryScore(reviewScore, reviewTotal);
     summarySubEl.textContent = s.summarySub(reviewScore, reviewTotal);
+  } else if (currentMode === "editor") {
+    renderCatSelect();
+    syncEditorLabels();
+    renderEditorList();
   }
 
   renderRoulette(currentMode !== "idle" ? currentWinnerIndex : null);
@@ -1959,6 +2157,14 @@ topicRow.addEventListener("click", (event) => {
 historyButton.addEventListener("click", openHistory);
 historyBackBtn.addEventListener("click", goToIdle);
 historyCloseBtn.addEventListener("click", goToIdle);
+
+editorButton.addEventListener("click", openEditor);
+editorBackBtn.addEventListener("click", goToIdle);
+ceAddBtn.addEventListener("click", addCustomConcept);
+editorListEl.addEventListener("click", (event) => {
+  const del = event.target.closest(".editor-del");
+  if (del) deleteCustomConcept(Number(del.dataset.idx));
+});
 exportButton.addEventListener("click", exportData);
 importButton.addEventListener("click", () => importFileInput.click());
 importFileInput.addEventListener("change", (event) => {
@@ -1970,12 +2176,20 @@ importFileInput.addEventListener("change", (event) => {
 /* ---------------------------------------------------------------------------
  * Boot.
  * ------------------------------------------------------------------------- */
+customConcepts = loadCustom();
+N = BASE_COUNT + customConcepts.length;
 store = loadStore();
 settings = loadSettings();
 lang = detectInitialLang();
 soundEnabled = safeGet(SOUND_KEY) !== "off";
 applyLanguage(lang);
 goToIdle();
+
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  });
+}
 resultText.textContent = currentWinnerIndex !== null ? conceptName(currentWinnerIndex) : t().resultIdle;
 
 if (safeGet(ONB_KEY) !== "1") showOnboarding();
@@ -1993,6 +2207,9 @@ if (location.search.indexOf("debug") !== -1) {
     spin, startStage, enterRecall, enterSessionQuiz, gradeCurrent, selectWinner, computeSchedule,
     startReview, onQuizOption, onQuizCheck, onQuizNext, onMatchClick, finishMatch,
     clozeCorrect, makeQuestion, toggleCategory, openHistory, exportData, importData, categoryEnabled,
+    openEditor, addCustomConcept, deleteCustomConcept, deckEntry, conceptLinks,
+    get custom() { return customConcepts; },
+    get deckSize() { return N; },
     expireTimer() { timerDeadline = Date.now() - 1; timerTick(); },
   };
 }

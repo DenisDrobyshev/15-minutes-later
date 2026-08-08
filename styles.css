@@ -1261,6 +1261,111 @@ button.stat:hover {
   font-size: 0.82rem;
 }
 
+/* ---- Concept links ---- */
+.concept-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.concept-link {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--chip-bg);
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-decoration: none;
+  transition: color 140ms ease, border-color 140ms ease;
+}
+
+.concept-link:hover {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+/* ---- Custom concepts editor ---- */
+.view-editor {
+  position: relative;
+  width: min(560px, calc(100vw - 40px));
+  text-align: center;
+}
+
+.editor-list {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.editor-empty {
+  color: var(--muted);
+  padding: 10px;
+}
+
+.editor-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--result-bg);
+  text-align: left;
+}
+
+.editor-item-name {
+  flex: 1;
+  font-weight: 700;
+}
+
+.editor-item-cat {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.editor-del {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--chip-bg);
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.editor-del:hover {
+  color: #d9534f;
+}
+
+.editor-form {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.editor-form .write-area {
+  min-height: 80px;
+}
+
+.ce-select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line-strong);
+  background: var(--result-bg);
+  color: var(--text);
+  font: inherit;
+}
+
 .back-button {
   position: absolute;
   top: -4px;

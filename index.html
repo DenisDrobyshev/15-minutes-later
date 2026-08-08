@@ -30,13 +30,16 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%A0%3C/text%3E%3C/svg%3E"
     />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="theme-color" content="#0d0c14" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=2026-08-08b" />
+    <link rel="stylesheet" href="./styles.css?v=2026-08-08c" />
   </head>
   <body>
     <div class="ambient ambient-left"></div>
@@ -136,6 +139,7 @@
             ✔ <span id="check-toggle-label">Проверка</span>
           </button>
           <div class="topic-row" id="topic-row" role="group" aria-label="Темы"></div>
+          <button type="button" class="ghost-button" id="editor-button">Мои концепты</button>
         </section>
 
         <section class="stats-bar" id="stats-bar">
@@ -202,6 +206,7 @@
         <div class="brief" id="session-brief">
           <p class="brief-label" id="brief-label">С чего начать</p>
           <ul class="brief-questions" id="brief-questions"></ul>
+          <div class="concept-links" id="brief-links" hidden></div>
         </div>
 
         <p class="stage-prompt" id="stage-prompt" hidden></p>
@@ -246,6 +251,7 @@
           <span class="recall-def-label" id="recall-def-label">Определение</span>
           <p class="recall-def-text" id="recall-def-text"></p>
         </div>
+        <div class="concept-links" id="recall-links" hidden></div>
 
         <div class="grade-grid" id="grade-grid">
           <button type="button" class="grade-button grade-again" data-grade="0">
@@ -355,6 +361,26 @@
 
         <button type="button" class="spin-button" id="history-close">Закрыть</button>
       </div>
+
+      <!-- ============ CUSTOM CONCEPTS EDITOR ============ -->
+      <div class="view view-editor" id="view-editor" hidden>
+        <button class="back-button" id="editor-back" type="button" aria-label="Назад">
+          ← Назад
+        </button>
+        <p class="persistent-tag">#15минутспустя</p>
+        <p class="recall-title" id="editor-title">Мои концепты</p>
+
+        <ul class="editor-list" id="editor-list"></ul>
+
+        <div class="editor-form">
+          <input id="ce-name" class="quiz-input" type="text" placeholder="Название" maxlength="80" />
+          <textarea id="ce-def" class="write-area" placeholder="Определение" maxlength="300"></textarea>
+          <input id="ce-q1" class="quiz-input" type="text" placeholder="Вопрос 1 (необязательно)" maxlength="160" />
+          <input id="ce-q2" class="quiz-input" type="text" placeholder="Вопрос 2 (необязательно)" maxlength="160" />
+          <select id="ce-cat" class="ce-select"></select>
+          <button type="button" class="spin-button" id="ce-add">Добавить</button>
+        </div>
+      </div>
     </main>
 
     <div class="onboarding" id="onboarding" hidden>
@@ -366,7 +392,7 @@
       </div>
     </div>
 
-    <script src="./concepts.js?v=2026-08-08b"></script>
-    <script src="./app.js?v=2026-08-08b"></script>
+    <script src="./concepts.js?v=2026-08-08c"></script>
+    <script src="./app.js?v=2026-08-08c"></script>
   </body>
 </html>
