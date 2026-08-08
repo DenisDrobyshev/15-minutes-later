@@ -90,6 +90,7 @@ const STRINGS = {
     ],
     onbStart: "Понятно, поехали",
     help: "Как это работает",
+    settings: "Настройки",
     exportBtn: "Экспорт",
     importBtn: "Импорт",
     importError: "Не удалось прочитать файл",
@@ -177,6 +178,7 @@ const STRINGS = {
     ],
     onbStart: "Got it, let's go",
     help: "How it works",
+    settings: "Settings",
     exportBtn: "Export",
     importBtn: "Import",
     importError: "Could not read the file",
@@ -237,6 +239,9 @@ const customPresentLabelEl = document.getElementById("custom-present-label");
 const stepperEls = Array.from(document.querySelectorAll(".stepper"));
 const writeToggleEl = document.getElementById("write-toggle");
 const writeToggleLabelEl = document.getElementById("write-toggle-label");
+const settingsToggle = document.getElementById("settings-toggle");
+const settingsToggleLabelEl = document.getElementById("settings-toggle-label");
+const setupSection = document.getElementById("setup");
 
 const statTodayEl = document.getElementById("stat-today");
 const statTodayKeyEl = document.getElementById("stat-today-key");
@@ -1750,6 +1755,7 @@ function applyLanguage(next) {
   quizInput.setAttribute("placeholder", s.quizInputPlaceholder);
 
   helpButton.setAttribute("aria-label", s.help);
+  settingsToggleLabelEl.textContent = s.settings;
   historyButton.textContent = s.historyBtn;
   exportButton.textContent = s.exportBtn;
   importButton.textContent = s.importBtn;
@@ -1936,6 +1942,13 @@ matchDefsEl.addEventListener("click", (event) => {
 matchContinueBtn.addEventListener("click", finishMatch);
 matchBackBtn.addEventListener("click", goToIdle);
 summaryDoneBtn.addEventListener("click", goToIdle);
+
+settingsToggle.addEventListener("click", () => {
+  const open = setupSection.hidden;
+  setupSection.hidden = !open;
+  settingsToggle.setAttribute("aria-expanded", String(open));
+  settingsToggle.classList.toggle("is-open", open);
+});
 
 helpButton.addEventListener("click", showOnboarding);
 onbStartBtn.addEventListener("click", hideOnboarding);

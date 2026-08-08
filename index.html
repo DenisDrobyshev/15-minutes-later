@@ -36,7 +36,7 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=2026-08-08" />
+    <link rel="stylesheet" href="./styles.css?v=2026-08-08b" />
   </head>
   <body>
     <div class="ambient ambient-left"></div>
@@ -97,7 +97,16 @@
           <p class="kbd-hint" id="kbd-hint">Пробел — крутить</p>
         </section>
 
-        <section class="setup" id="setup">
+        <button
+          type="button"
+          class="settings-toggle"
+          id="settings-toggle"
+          aria-expanded="false"
+        >
+          ⚙ <span id="settings-toggle-label">Настройки</span>
+        </button>
+
+        <section class="setup" id="setup" hidden>
           <div class="preset-row" id="preset-row" role="group" aria-label="Режим">
             <button type="button" class="preset-chip" data-preset="fast">5·1</button>
             <button type="button" class="preset-chip is-active" data-preset="std">15·1</button>
@@ -357,7 +366,7 @@
       </div>
     </div>
 
-    <script src="./concepts.js?v=2026-08-08"></script>
-    <script src="./app.js?v=2026-08-08"></script>
+    <script src="./concepts.js?v=2026-08-08b"></script>
+    <script src="./app.js?v=2026-08-08b"></script>
   </body>
 </html>

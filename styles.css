@@ -1098,6 +1098,29 @@ button.stat:hover {
   opacity: 0.7;
 }
 
+/* ---- Settings toggle ---- */
+.settings-toggle {
+  align-self: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--chip-bg);
+  cursor: pointer;
+  transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.settings-toggle:hover,
+.settings-toggle.is-open {
+  color: var(--text);
+  border-color: var(--text);
+}
+
 /* ---- Data row ---- */
 .data-row {
   display: flex;
