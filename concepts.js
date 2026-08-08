@@ -496,3 +496,24 @@ const CONCEPT_DATA = [
       q: ["How is reaction time measured?", "What does it reveal about memory's web?"] },
   },
 ];
+
+/* Topic of each concept, index-aligned with CONCEPT_DATA. Used by the topic
+ * filter. Keys: memory, attention, bias, neuro, mind, perception. */
+const CATEGORY_ORDER = ["memory", "attention", "bias", "neuro", "mind", "perception"];
+const CATEGORY_OF = [
+  "memory", "memory", "memory", "memory", "memory", "memory",
+  "memory", "memory", "memory", "memory", "memory", "memory",
+  "attention", "attention", "attention", "attention",
+  "attention", "attention", "attention", "attention",
+  "bias", "bias", "bias", "bias", "bias", "bias",
+  "bias", "bias", "bias", "bias", "bias", "bias",
+  "neuro", "neuro", "neuro", "neuro", "neuro", "neuro",
+  "neuro", "neuro", "neuro", "neuro", "neuro",
+  "mind", "mind", "mind", "mind", "mind", "mind", "mind", "mind",
+  "perception", "perception", "perception", "perception",
+  "perception", "perception", "perception",
+  "memory", "memory", "memory", "memory", "memory", "memory",
+  "mind", "attention", "attention", "mind",
+  "bias", "bias", "bias", "bias", "bias", "bias",
+  "mind", "mind", "mind", "neuro", "neuro", "memory",
+];

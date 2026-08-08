@@ -8,6 +8,24 @@
       name="description"
       content="Рулетка выбирает концепт — 15 минут разбираешь, минуту рассказываешь, оцениваешь память. Тренажёр с интервальным повторением. / A roulette picks a concept — research 15 min, recall, and the system schedules the next review."
     />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="15 Minutes Later" />
+    <meta property="og:title" content="15 Minutes Later · Focus Roulette" />
+    <meta
+      property="og:description"
+      content="Рулетка выбирает концепт — разбираешь, вспоминаешь, тест ставит оценку. Тренажёр памяти со spaced repetition. RU / EN."
+    />
+    <meta property="og:url" content="https://denisdrobyshev.github.io/15-minutes-later/" />
+    <meta property="og:image" content="https://denisdrobyshev.github.io/15-minutes-later/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="15 Minutes Later · Focus Roulette" />
+    <meta
+      name="twitter:description"
+      content="Тренажёр памяти со spaced repetition. RU / EN."
+    />
+    <meta name="twitter:image" content="https://denisdrobyshev.github.io/15-minutes-later/og.png" />
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%A0%3C/text%3E%3C/svg%3E"
@@ -18,13 +36,21 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=2026-08-07f" />
+    <link rel="stylesheet" href="./styles.css?v=2026-08-08" />
   </head>
   <body>
     <div class="ambient ambient-left"></div>
     <div class="ambient ambient-right"></div>
 
     <header class="top-bar">
+      <button
+        type="button"
+        class="icon-button"
+        id="help-button"
+        aria-label="Как это работает"
+      >
+        ?
+      </button>
       <button
         type="button"
         class="icon-button"
@@ -100,6 +126,7 @@
           <button type="button" class="toggle-chip" id="check-toggle" aria-pressed="false">
             ✔ <span id="check-toggle-label">Проверка</span>
           </button>
+          <div class="topic-row" id="topic-row" role="group" aria-label="Темы"></div>
         </section>
 
         <section class="stats-bar" id="stats-bar">
@@ -128,6 +155,13 @@
           <span id="test-button-label">Тест</span>
           <span class="test-count" id="test-count">0</span>
         </button>
+
+        <div class="data-row">
+          <button type="button" class="ghost-button" id="history-button">История</button>
+          <button type="button" class="ghost-button" id="export-button">Экспорт</button>
+          <button type="button" class="ghost-button" id="import-button">Импорт</button>
+          <input type="file" id="import-file" accept="application/json,.json" hidden />
+        </div>
 
         <footer class="site-footer">
           <a
@@ -283,9 +317,47 @@
         <p class="summary-sub" id="summary-sub"></p>
         <button type="button" class="spin-button" id="summary-done">Готово</button>
       </div>
+
+      <!-- ============ HISTORY ============ -->
+      <div class="view view-history" id="view-history" hidden>
+        <button class="back-button" id="history-back" type="button" aria-label="Назад">
+          ← Назад
+        </button>
+        <p class="persistent-tag">#15минутспустя</p>
+        <p class="recall-title" id="history-title">История занятий</p>
+
+        <div class="hist-stats">
+          <div class="stat">
+            <span class="stat-value" id="hist-studied">0</span>
+            <span class="stat-key" id="hist-studied-key">Изучено</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="hist-best">0</span>
+            <span class="stat-key" id="hist-best-key">Лучший стрик</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="hist-days">0</span>
+            <span class="stat-key" id="hist-days-key">Дней активности</span>
+          </div>
+        </div>
+
+        <div class="heatmap" id="heatmap"></div>
+        <p class="hist-empty" id="hist-empty" hidden></p>
+
+        <button type="button" class="spin-button" id="history-close">Закрыть</button>
+      </div>
     </main>
 
-    <script src="./concepts.js?v=2026-08-07f"></script>
-    <script src="./app.js?v=2026-08-07f"></script>
+    <div class="onboarding" id="onboarding" hidden>
+      <div class="onboarding-card">
+        <p class="persistent-tag">#15минутспустя</p>
+        <h2 class="onb-title" id="onb-title">Как это работает</h2>
+        <ol class="onb-steps" id="onb-steps"></ol>
+        <button type="button" class="spin-button" id="onb-start">Понятно, поехали</button>
+      </div>
+    </div>
+
+    <script src="./concepts.js?v=2026-08-08"></script>
+    <script src="./app.js?v=2026-08-08"></script>
   </body>
 </html>

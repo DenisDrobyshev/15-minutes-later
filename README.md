@@ -33,6 +33,13 @@
 
 Внизу — дневная цель (кликом меняется), стрик по дням, сколько концептов к возврату сегодня и сколько изучено из 80. То, ради чего возвращаешься.
 
+## Ещё
+
+- **Фильтр по темам** — гонять только искажения, только нейронауку или любую комбинацию.
+- **История** — тепловая карта занятий по дням, лучший стрик, дни активности.
+- **Экспорт/импорт** — прогресс лежит в браузере; выгрузи в файл и перенеси на другое устройство.
+- **Первый заход** — короткое «как это работает», потом доступно по кнопке «?».
+
 ## Языки
 
 Русский и английский, переключатель в правом верхнем углу. Все 80 концептов, их определения и вопросы лежат параллельно с общими индексами — смена языка не меняет выбранный концепт, только его написание. Язык запоминается; по умолчанию берётся из браузера.
@@ -86,6 +93,13 @@ The "Test" button on the home screen is a separate review mode: it runs your due
 ## Progress
 
 A daily goal (click to change), a day streak, how many concepts are due today, and how many of the 80 you've studied.
+
+## More
+
+- **Topic filter** — drill only biases, only neuroscience, or any mix.
+- **History** — a heatmap of study days, best streak, active days.
+- **Export / import** — progress lives in the browser; export to a file and move it to another device.
+- **First run** — a short "how it works", reachable later via the "?" button.
 
 ## Languages
 

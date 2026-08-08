@@ -80,6 +80,26 @@ const STRINGS = {
     summaryTitle: "Тест завершён",
     summaryScore: (c, total) => `${c} / ${total}`,
     summarySub: (c, total) => `Верно ${c} из ${total}`,
+    cats: { memory: "Память", attention: "Внимание", bias: "Искажения", neuro: "Нейро", mind: "Поведение", perception: "Восприятие" },
+    onbTitle: "Как это работает",
+    onbSteps: [
+      "Рулетка выбирает случайный концепт из 80 — о памяти, внимании, мышлении и мозге.",
+      "Разбираешь его отведённое время, потом пересказываешь по памяти.",
+      "Оцениваешь себя — или включи «Проверку», и в конце тебя протестируют.",
+      "Планировщик решает, когда вернуть концепт. Кнопка «Тест» гоняет всё, что к возврату.",
+    ],
+    onbStart: "Понятно, поехали",
+    help: "Как это работает",
+    exportBtn: "Экспорт",
+    importBtn: "Импорт",
+    importError: "Не удалось прочитать файл",
+    historyBtn: "История",
+    historyTitle: "История занятий",
+    histStudied: "Изучено",
+    histBestStreak: "Лучший стрик",
+    histActiveDays: "Дней активности",
+    histNoData: "Пока нет данных — начни заниматься.",
+    close: "Закрыть",
     soundOnLabel: "Звук включён",
     soundOffLabel: "Звук выключен",
     credit: "Вдохновлено проектом 15-minutos-después",
@@ -147,6 +167,26 @@ const STRINGS = {
     summaryTitle: "Test complete",
     summaryScore: (c, total) => `${c} / ${total}`,
     summarySub: (c, total) => `${c} of ${total} correct`,
+    cats: { memory: "Memory", attention: "Attention", bias: "Biases", neuro: "Brain", mind: "Behavior", perception: "Perception" },
+    onbTitle: "How it works",
+    onbSteps: [
+      "The roulette picks a random concept from 80 — memory, attention, thinking, the brain.",
+      "You explore it within the time you set, then recall it aloud from memory.",
+      "Grade yourself — or turn on “Check” and get tested at the end.",
+      "The scheduler decides when it returns. The “Test” button runs everything that's due.",
+    ],
+    onbStart: "Got it, let's go",
+    help: "How it works",
+    exportBtn: "Export",
+    importBtn: "Import",
+    importError: "Could not read the file",
+    historyBtn: "History",
+    historyTitle: "Study history",
+    histStudied: "Studied",
+    histBestStreak: "Best streak",
+    histActiveDays: "Active days",
+    histNoData: "No data yet — start studying.",
+    close: "Close",
     soundOnLabel: "Sound on",
     soundOffLabel: "Sound off",
     credit: "Inspired by 15-minutos-después",
@@ -274,6 +314,29 @@ const summaryScoreEl = document.getElementById("summary-score");
 const summarySubEl = document.getElementById("summary-sub");
 const summaryDoneBtn = document.getElementById("summary-done");
 
+const helpButton = document.getElementById("help-button");
+const topicRow = document.getElementById("topic-row");
+const historyButton = document.getElementById("history-button");
+const exportButton = document.getElementById("export-button");
+const importButton = document.getElementById("import-button");
+const importFileInput = document.getElementById("import-file");
+const viewHistory = document.getElementById("view-history");
+const historyBackBtn = document.getElementById("history-back");
+const historyTitleEl = document.getElementById("history-title");
+const histStudiedEl = document.getElementById("hist-studied");
+const histStudiedKeyEl = document.getElementById("hist-studied-key");
+const histBestEl = document.getElementById("hist-best");
+const histBestKeyEl = document.getElementById("hist-best-key");
+const histDaysEl = document.getElementById("hist-days");
+const histDaysKeyEl = document.getElementById("hist-days-key");
+const heatmapEl = document.getElementById("heatmap");
+const histEmptyEl = document.getElementById("hist-empty");
+const historyCloseBtn = document.getElementById("history-close");
+const onboardingEl = document.getElementById("onboarding");
+const onbTitleEl = document.getElementById("onb-title");
+const onbStepsEl = document.getElementById("onb-steps");
+const onbStartBtn = document.getElementById("onb-start");
+
 /* ---------------------------------------------------------------------------
  * Persistence keys.
  * ------------------------------------------------------------------------- */
@@ -282,6 +345,7 @@ const LANG_KEY = "fml.lang";
 const SOUND_KEY = "fml.sound";
 const STORE_KEY = "fml.store.v1";
 const SETTINGS_KEY = "fml.settings.v1";
+const ONB_KEY = "fml.onboarded";
 const STORE_VERSION = 1;
 
 const prefersReducedMotion =
@@ -353,7 +417,20 @@ function clampInt(value, min, max) {
 }
 
 function freshSettings() {
-  return { preset: "std", customStudy: 20, customPresent: 2, writtenRecall: false, quizGrade: false };
+  return {
+    preset: "std",
+    customStudy: 20,
+    customPresent: 2,
+    writtenRecall: false,
+    quizGrade: false,
+    categories: CATEGORY_ORDER.slice(),
+  };
+}
+
+function normalizeCategories(list) {
+  if (!Array.isArray(list)) return CATEGORY_ORDER.slice();
+  const filtered = list.filter((c) => CATEGORY_ORDER.includes(c));
+  return filtered.length ? filtered : CATEGORY_ORDER.slice();
 }
 
 function loadSettings() {
@@ -371,6 +448,7 @@ function loadSettings() {
       customPresent: clampInt(parsed.customPresent ?? base.customPresent, CUSTOM_PRESENT_MIN, CUSTOM_PRESENT_MAX),
       writtenRecall: Boolean(parsed.writtenRecall),
       quizGrade: Boolean(parsed.quizGrade),
+      categories: normalizeCategories(parsed.categories),
     };
   } catch (error) {
     return freshSettings();
@@ -396,8 +474,10 @@ function freshStore() {
       todayCount: 0,
       lastStudyDate: "",
       streak: 0,
+      bestStreak: 0,
       totalGrades: 0,
       goodGrades: 0,
+      history: {},
     },
   };
 }
@@ -499,21 +579,34 @@ function weightedPick(list, weightFn) {
   return list[list.length - 1];
 }
 
+function categoryEnabled(index) {
+  return settings.categories.includes(CATEGORY_OF[index]);
+}
+
 function selectWinner() {
   store.spinCounter += 1;
   const now = Date.now();
+
+  // Restrict to enabled topics (minus the previous winner); fall back to the
+  // whole deck if the filter plus no-repeat leaves nothing.
+  const pool = [];
+  for (let i = 0; i < N; i += 1) {
+    if (i !== lastWinnerIndex && categoryEnabled(i)) pool.push(i);
+  }
+  if (!pool.length) {
+    for (let i = 0; i < N; i += 1) if (i !== lastWinnerIndex) pool.push(i);
+  }
+
   const due = [];
   const fresh = [];
-
-  for (let i = 0; i < N; i += 1) {
-    if (i === lastWinnerIndex) continue;
+  pool.forEach((i) => {
     const card = store.cards[i];
     if (card.seen) {
       if (card.due <= now) due.push(i);
     } else {
       fresh.push(i);
     }
-  }
+  });
 
   let winner;
   if (due.length) {
@@ -521,12 +614,8 @@ function selectWinner() {
   } else if (fresh.length) {
     winner = fresh[Math.floor(Math.random() * fresh.length)];
   } else {
-    const pool = [];
-    for (let i = 0; i < N; i += 1) {
-      if (i !== lastWinnerIndex) pool.push(i);
-    }
-    pool.sort((a, b) => store.cards[a].due - store.cards[b].due);
-    const topK = pool.slice(0, Math.min(5, pool.length));
+    const sorted = pool.slice().sort((a, b) => store.cards[a].due - store.cards[b].due);
+    const topK = sorted.slice(0, Math.min(5, sorted.length));
     winner = topK[Math.floor(Math.random() * topK.length)];
   }
 
@@ -570,6 +659,9 @@ function recordStudy(grade) {
   s.todayCount += 1;
   s.totalGrades = (s.totalGrades || 0) + 1;
   if (grade >= 2) s.goodGrades = (s.goodGrades || 0) + 1;
+  s.bestStreak = Math.max(s.bestStreak || 0, s.streak || 0);
+  if (!s.history) s.history = {};
+  s.history[today] = (s.history[today] || 0) + 1;
 }
 
 /* ---------------------------------------------------------------------------
@@ -930,6 +1022,7 @@ function setMode(mode) {
     : mode === "quiz" ? "quiz"
     : mode === "match" ? "match"
     : mode === "summary" ? "summary"
+    : mode === "history" ? "history"
     : "session";
 
   viewIdle.hidden = view !== "idle";
@@ -938,6 +1031,7 @@ function setMode(mode) {
   viewQuiz.hidden = view !== "quiz";
   viewMatch.hidden = view !== "match";
   viewSummary.hidden = view !== "summary";
+  viewHistory.hidden = view !== "history";
   appShell.dataset.mode = mode;
 
   if (view === "session") applySessionSubview(mode);
@@ -1402,6 +1496,170 @@ function finishMatch() {
 }
 
 /* ---------------------------------------------------------------------------
+ * Topic filter, onboarding, history, and data export/import.
+ * ------------------------------------------------------------------------- */
+function renderTopicChips() {
+  topicRow.innerHTML = "";
+  CATEGORY_ORDER.forEach((cat) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "topic-chip";
+    btn.dataset.cat = cat;
+    btn.textContent = t().cats[cat];
+    const active = settings.categories.includes(cat);
+    btn.classList.toggle("is-active", active);
+    btn.setAttribute("aria-pressed", String(active));
+    topicRow.appendChild(btn);
+  });
+}
+
+function toggleCategory(cat) {
+  const set = new Set(settings.categories);
+  if (set.has(cat)) set.delete(cat);
+  else set.add(cat);
+  let next = CATEGORY_ORDER.filter((c) => set.has(c));
+  if (!next.length) next = CATEGORY_ORDER.slice();
+  settings.categories = next;
+  saveSettings();
+  renderTopicChips();
+}
+
+function renderOnboarding() {
+  onbTitleEl.textContent = t().onbTitle;
+  onbStartBtn.textContent = t().onbStart;
+  onbStepsEl.innerHTML = "";
+  t().onbSteps.forEach((step) => {
+    const li = document.createElement("li");
+    li.textContent = step;
+    onbStepsEl.appendChild(li);
+  });
+}
+
+function showOnboarding() {
+  renderOnboarding();
+  onboardingEl.hidden = false;
+}
+
+function hideOnboarding() {
+  onboardingEl.hidden = true;
+  safeSet(ONB_KEY, "1");
+}
+
+function exportData() {
+  const payload = {
+    app: "15-minutes-later",
+    version: STORE_VERSION,
+    exportedAt: new Date().toISOString(),
+    store,
+    settings,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `15-minutes-later-${dateKey(Date.now())}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importData(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      const rawStore = parsed && parsed.store;
+      if (!rawStore || !Array.isArray(rawStore.cards)) {
+        window.alert(t().importError);
+        return;
+      }
+      const base = freshStore();
+      store = {
+        version: STORE_VERSION,
+        spinCounter: Number(rawStore.spinCounter) || 0,
+        cards: Array.from({ length: N }, (_, i) => ({ ...freshCard(), ...(rawStore.cards[i] || {}) })),
+        stats: { ...base.stats, ...(rawStore.stats || {}) },
+      };
+      if (parsed.settings) {
+        settings = {
+          ...freshSettings(),
+          preset: ["fast", "std", "pomodoro", "custom"].includes(parsed.settings.preset) ? parsed.settings.preset : "std",
+          customStudy: clampInt(parsed.settings.customStudy, CUSTOM_STUDY_MIN, CUSTOM_STUDY_MAX),
+          customPresent: clampInt(parsed.settings.customPresent, CUSTOM_PRESENT_MIN, CUSTOM_PRESENT_MAX),
+          writtenRecall: Boolean(parsed.settings.writtenRecall),
+          quizGrade: Boolean(parsed.settings.quizGrade),
+          categories: normalizeCategories(parsed.settings.categories),
+        };
+      }
+      saveStore();
+      saveSettings();
+      currentWinnerIndex = null;
+      lastWinnerIndex = null;
+      applySettingsUi();
+      renderTopicChips();
+      goToIdle();
+    } catch (error) {
+      window.alert(t().importError);
+    }
+  };
+  reader.onerror = () => window.alert(t().importError);
+  reader.readAsText(file);
+}
+
+function renderHistory() {
+  const s = store.stats;
+  const hist = s.history || {};
+  histStudiedEl.textContent = String(seenCount());
+  histBestEl.textContent = String(Math.max(s.bestStreak || 0, displayStreak()));
+  const activeDays = Object.keys(hist).filter((k) => hist[k] > 0).length;
+  histDaysEl.textContent = String(activeDays);
+
+  const WEEKS = 17;
+  const totalDays = WEEKS * 7;
+  const today = new Date();
+  const start = new Date(today);
+  start.setDate(start.getDate() - (totalDays - 1));
+  let max = 1;
+  Object.keys(hist).forEach((k) => {
+    if (hist[k] > max) max = hist[k];
+  });
+
+  heatmapEl.innerHTML = "";
+  for (let w = 0; w < WEEKS; w += 1) {
+    const col = document.createElement("div");
+    col.className = "heat-col";
+    for (let d = 0; d < 7; d += 1) {
+      const cell = document.createElement("div");
+      cell.className = "heat-cell";
+      const date = new Date(start);
+      date.setDate(start.getDate() + w * 7 + d);
+      if (date <= today) {
+        const key = dateKey(date.getTime());
+        const count = hist[key] || 0;
+        const level = count === 0 ? 0 : count >= max ? 4 : Math.min(4, 1 + Math.floor((count / max) * 3));
+        cell.dataset.level = String(level);
+        cell.title = `${key}: ${count}`;
+      } else {
+        cell.classList.add("is-future");
+      }
+      col.appendChild(cell);
+    }
+    heatmapEl.appendChild(col);
+  }
+
+  const hasData = activeDays > 0;
+  heatmapEl.hidden = !hasData;
+  histEmptyEl.hidden = hasData;
+  histEmptyEl.textContent = t().histNoData;
+}
+
+function openHistory() {
+  renderHistory();
+  setMode("history");
+}
+
+/* ---------------------------------------------------------------------------
  * Language application.
  * ------------------------------------------------------------------------- */
 function updateSoundToggleUi() {
@@ -1490,6 +1748,20 @@ function applyLanguage(next) {
   matchBackBtn.textContent = s.back;
   quizCheckBtn.textContent = s.quizCheck;
   quizInput.setAttribute("placeholder", s.quizInputPlaceholder);
+
+  helpButton.setAttribute("aria-label", s.help);
+  historyButton.textContent = s.historyBtn;
+  exportButton.textContent = s.exportBtn;
+  importButton.textContent = s.importBtn;
+  historyTitleEl.textContent = s.historyTitle;
+  histStudiedKeyEl.textContent = s.histStudied;
+  histBestKeyEl.textContent = s.histBestStreak;
+  histDaysKeyEl.textContent = s.histActiveDays;
+  historyCloseBtn.textContent = s.close;
+  historyBackBtn.textContent = s.back;
+  renderTopicChips();
+  if (!onboardingEl.hidden) renderOnboarding();
+  if (currentMode === "history") renderHistory();
 
   if (currentMode === "quiz" && currentQuestion) {
     const prog = quizProgressEl.hidden ? null : quizProgressEl.textContent;
@@ -1665,6 +1937,23 @@ matchContinueBtn.addEventListener("click", finishMatch);
 matchBackBtn.addEventListener("click", goToIdle);
 summaryDoneBtn.addEventListener("click", goToIdle);
 
+helpButton.addEventListener("click", showOnboarding);
+onbStartBtn.addEventListener("click", hideOnboarding);
+topicRow.addEventListener("click", (event) => {
+  const btn = event.target.closest(".topic-chip");
+  if (btn) toggleCategory(btn.dataset.cat);
+});
+historyButton.addEventListener("click", openHistory);
+historyBackBtn.addEventListener("click", goToIdle);
+historyCloseBtn.addEventListener("click", goToIdle);
+exportButton.addEventListener("click", exportData);
+importButton.addEventListener("click", () => importFileInput.click());
+importFileInput.addEventListener("change", (event) => {
+  const file = event.target.files && event.target.files[0];
+  if (file) importData(file);
+  importFileInput.value = "";
+});
+
 /* ---------------------------------------------------------------------------
  * Boot.
  * ------------------------------------------------------------------------- */
@@ -1675,6 +1964,8 @@ soundEnabled = safeGet(SOUND_KEY) !== "off";
 applyLanguage(lang);
 goToIdle();
 resultText.textContent = currentWinnerIndex !== null ? conceptName(currentWinnerIndex) : t().resultIdle;
+
+if (safeGet(ONB_KEY) !== "1") showOnboarding();
 
 if (location.search.indexOf("debug") !== -1) {
   window.__fml = {
@@ -1688,7 +1979,7 @@ if (location.search.indexOf("debug") !== -1) {
     get review() { return { pos: reviewPos, total: reviewTotal, score: reviewScore, queue: reviewQueue, matchSet }; },
     spin, startStage, enterRecall, enterSessionQuiz, gradeCurrent, selectWinner, computeSchedule,
     startReview, onQuizOption, onQuizCheck, onQuizNext, onMatchClick, finishMatch,
-    clozeCorrect, makeQuestion,
+    clozeCorrect, makeQuestion, toggleCategory, openHistory, exportData, importData, categoryEnabled,
     expireTimer() { timerDeadline = Date.now() - 1; timerTick(); },
   };
 }
