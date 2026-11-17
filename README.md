@@ -12,10 +12,10 @@
 
 Память строится так: закодировать → вспомнить под нагрузкой → вернуть в нужный момент. Простое чтение делает только первый шаг. Здесь есть все три.
 
-- **Бриф** — концепт и два наводящих вопроса. 15 минут получают направление, а не «читай что попало».
-- **15 минут** — исследуешь тему.
-- **1 минута** — рассказываешь вслух по памяти. Это активное припоминание: оно укрепляет память сильнее, чем перечитывание.
-- **Оценка** — не помню / трудно / хорошо / легко.
+- Бриф: концепт и два наводящих вопроса. 15 минут получают направление, а не «читай что попало».
+- 15 минут: исследуешь тему.
+- 1 минута: рассказываешь вслух по памяти. Это активное припоминание: оно укрепляет память сильнее, чем перечитывание.
+- Оценка: не помню / трудно / хорошо / легко.
 
 ## Планировщик
 
@@ -35,13 +35,13 @@
 
 ## Ещё
 
-- **Фильтр по темам** — гонять только искажения, только нейронауку или любую комбинацию.
-- **История** — тепловая карта занятий по дням, лучший стрик, дни активности.
-- **Экспорт/импорт** — прогресс лежит в браузере; выгрузи в файл и перенеси на другое устройство.
-- **Первый заход** — короткое «как это работает», потом доступно по кнопке «?».
-- **Установка (PWA)** — ставится на телефон как приложение и работает офлайн.
-- **Свои концепты** — добавляй собственные карточки в разделе «Мои концепты».
-- **Узнать больше** — у каждого концепта ссылки на Wikipedia и поиск.
+- Фильтр по темам: гонять только искажения, только нейронауку или любую комбинацию.
+- История: тепловая карта занятий по дням, лучший стрик, дни активности.
+- Экспорт/импорт: прогресс лежит в браузере; выгрузи в файл и перенеси на другое устройство.
+- Первый заход: короткое «как это работает», потом доступно по кнопке «?».
+- Установка (PWA): ставится на телефон как приложение и работает офлайн.
+- Свои концепты: добавляй собственные карточки в разделе «Мои концепты».
+- Узнать больше: у каждого концепта ссылки на Wikipedia и поиск.
 
 ## Языки
 
@@ -63,8 +63,8 @@ python -m http.server 8000
 
 ## Управление
 
-- **Пробел** — крутить колесо, запускать этап, ставить таймер на паузу;
-- **клик по таймеру** — пауза и продолжение.
+- Пробел: крутить колесо, запускать этап, ставить таймер на паузу;
+- клик по таймеру: пауза и продолжение.
 
 ---
 
@@ -78,10 +78,10 @@ A roulette picks a concept. You research it for 15 minutes, recall it aloud for 
 
 Memory is built by encoding, then retrieving under load, then returning at the right moment. Plain reading only does the first step; this does all three.
 
-- **Brief** — the concept and two guiding questions, so the 15 minutes have direction.
-- **15 minutes** — research the topic.
-- **1 minute** — recall it aloud from memory. Retrieval practice strengthens memory more than rereading.
-- **Grade** — blank / hard / good / easy.
+- Brief: the concept and two guiding questions, so the 15 minutes have direction.
+- 15 minutes: research the topic.
+- 1 minute: recall it aloud from memory. Retrieval practice strengthens memory more than rereading.
+- Grade: blank / hard / good / easy.
 
 ## The scheduler
 
@@ -99,13 +99,13 @@ A daily goal (click to change), a day streak, how many concepts are due today, a
 
 ## More
 
-- **Topic filter** — drill only biases, only neuroscience, or any mix.
-- **History** — a heatmap of study days, best streak, active days.
-- **Export / import** — progress lives in the browser; export to a file and move it to another device.
-- **First run** — a short "how it works", reachable later via the "?" button.
-- **Install (PWA)** — add it to your phone as an app and use it offline.
-- **Your own concepts** — add custom cards under "My concepts".
-- **Learn more** — every concept links out to Wikipedia and search.
+- Topic filter: drill only biases, only neuroscience, or any mix.
+- History: a heatmap of study days, best streak, active days.
+- Export / import: progress lives in the browser; export to a file and move it to another device.
+- First run: a short "how it works", reachable later via the "?" button.
+- Install (PWA): add it to your phone as an app and use it offline.
+- Your own concepts: add custom cards under "My concepts".
+- Learn more: every concept links out to Wikipedia and search.
 
 ## Languages
 
